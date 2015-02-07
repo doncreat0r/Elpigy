@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    <string name="app_name">Elpigy</string>
+    <string name="app_version">1.0.1</string>
+    
+	<string name="alert_dialog_no_bt">Cannot use this application without bluetooth.</string>
+	<string name="alert_dialog_yes">Yes</string>
+	<string name="alert_dialog_no">No</string>
+	<string name="alert_dialog_warning_title">Warning</string>
+	<string name="alert_dialog_ok">OK</string>
+	<string name="alert_dialog_turn_on_bt">This application needs the Bluetooth. Do you want turn on?</string>
+
+	<string name="toast_connected_to">Connected to</string>
+	<string name="toast_unable_to_connect">Unable to connect device</string>
+	<string name="toast_connection_lost">Device connection was lost</string>
+			
+    <string name="not_connected">You are not connected to a device</string>
+    <string name="title_connecting">connecting&#8230;</string>
+    <string name="title_connected_to">connected: </string>
+    <string name="title_not_connected">not connected</string>
+
+    <!--  DeviceListActivity -->
+    <string name="scanning">scanning for devices&#8230;</string>
+    <string name="select_device">select a device to connect</string>
+    <string name="none_paired">No devices have been paired</string>
+    <string name="none_found">No devices found</string>
+    <string name="title_paired_devices">Paired Devices</string>
+    <string name="title_other_devices">Other Available Devices</string>
+    <string name="button_scan">Scan for devices</string>
+
+    <!-- Fuel add activity -->
+    <string name="button_back">Back</string>
+    <string name="button_add_lpg">Add LPG</string>
+    <string name="button_add_pet">Add petrol</string>
+    <string name="button_set_lpg">&gt;LPG</string>
+    <string name="button_set_pet">&gt;pet</string>
+    <string name="button_reset_trip">Reset trip data</string>
+    <string name="msg_sent">Request sent&#8230;</string>
+
+    <!-- Options Menu -->
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="parameters">Parameters</string>
+    <string name="preferences">Preferences</string>
+    <string name="special_keys">Special keys</string>
+    
+    <!-- Preference dialog -->
+    <string name="general_preferences">General</string>
+
+    <string name="summary_localecho_preference">Display the key strokes</string>
+
+    <string name="title_allowinsecureconnections_preference">Allow insecure connections</string>
+    <string name="summary_allowinsecureconnections_preference">Allow bluetooth insecure connections</string>
+
+    <string name="menu_start_logging">Start logging</string>
+    <string name="menu_stop_logging">Stop logging</string>
+    <string name="menu_logging_started">Logging started</string>
+    <string name="menu_logging_stopped">Logging stopped</string>
+    <string name="menu_about">About</string>
+    
+    <string name="title_screenorientation_preference">Screen orientation</string>
+    <string name="summary_screenorientation_preference">Choose the screen orientation</string>
+    <string name="dialog_title_screenorientation_preference">Screen orientation</string>
+
+    <string name="title_autoconnect_preference">Auto connect</string>
+    <string name="summary_autoconnect_preference">Connect to last chosen adapter automatically</string>
+    <string name="dialog_title_autoconnect_preference">Auto connect</string>
+
+    <string name="title_autoconnectmac_preference">Device MAC</string>
+    <string name="summary_autoconnectmac_preference">Connect to device with this MAC automatically</string>
+
+    <string name="bobrik_com">This software is based on BlueTerm source code</string>
+
+    <string name="big_label">Caption caption Caption</string>
+    <string name="big_unit">unit/unit</string>
+    <string name="val_num">0.00</string>
+    <string name="small_label">caption</string>
+    <string name="small_unit">unit</string>
+
+    <string name="default_screenorientation_preference">0</string>
+    <string name="default_value_allowinsecureconnections_preference">true</string>
+    <string name="default_value_autoconnect_preference">false</string>
+    <string name="avg_lpg_hourly">Average LPG\ninstant</string>
+    <string name="avg_lpg_short">Average LPG\nshort-term</string>
+    <string name="avg_lpg_long">Average LPG\nlong-term</string>
+    <string name="avg_lpg_trip">Average LPG\nper trip</string>
+    <string name="avg_pet_hourly">Average petrol\ninstant</string>
+    <string name="avg_pet_short">Average petrol\nshort-term</string>
+    <string name="avg_pet_long">Average petrol\nlong-term</string>
+    <string name="avg_pet_trip">Average petrol\nper trip</string>
+    <string name="distance_lpg">Distance\nLPG</string>
+    <string name="distance_pet">Distance\npetrol</string>
+    <string name="distance_all">Distance\ntotal</string>
+    <string name="spent_lpg">Spent LPG\nper trip</string>
+    <string name="spent_pet">Spent petrol\nper trip</string>
+    <string name="spent_all">Spent total\nper trip</string>
+    <string name="time_lpg">Trip time\non LPG</string>
+    <string name="time_pet">Trip time\non petrol</string>
+    <string name="time_all">Trip time\ntotal</string>
+    <string name="unit_l100">l/100km</string>
+    <string name="unit_lhour">l/hour</string>
+    <string name="unit_km">km</string>
+    <string name="unit_time">hh:mm</string>
+
+    <string name="unit_speed">km/h</string>
+    <string name="unit_percent">%</string>
+    <string name="unit_degree">°</string>
+    <string name="unit_degreeC">°C</string>
+    <string name="unit_liter">Liters</string>
+    <string name="unit_ms">ms</string>
+    <string name="unit_v">Volts</string>
+    <string name="unit_none"> </string>
+    <string name="unit_bar">bar</string>
+
+    <string name="obd_speed">Speed</string>
+    <string name="obd_STFT">STFT</string>
+    <string name="obd_LTFT">LTFT</string>
+    <string name="out_temp">Outside</string>
+    <string name="obd_load">Load</string>
+    <string name="obd_ta">Time adv.</string>
+    <string name="lpg_in_tank">LPG tank</string>
+    <string name="pet_in_tank">Pet.tank</string>
+    <string name="lpg_psys">Psys</string>
+    <string name="lpg_pcol">Pcol</string>
+    <string name="obd_map">MAP</string>
+    <string name="obd_tps">TPS</string>
+    <string name="lpg_inj_time">LPG inj.</string>
+    <string name="pet_inj_time">Pet.inj.</string>
+    <string name="lpg_tred">Tred</string>
+    <string name="lpg_tgas">Tgas</string>
+    <string name="obd_ect">Coolant</string>
+    <string name="obd_iat">Intake</string>
+    <string name="lpg_vbat">Voltage</string>
+    <string name="eeprom_update">EEPROM</string>
+    <string name="lpg_inj_flow">LPG flow</string>
+    <string name="pet_inj_flow">Pet.flow</string>
+    <string name="lpg_rpm">RPM</string>
+    <string name="obd_rpm">RPM OBD</string>
+
+
+
+</resources>
