@@ -34,7 +34,7 @@
         <EditText
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:inputType="numberSigned"
+            android:inputType="numberDecimal|numberSigned"
             android:ems="10"
             android:id="@+id/edLPG"
             android:editable="true"
@@ -60,7 +60,7 @@
         <EditText
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:inputType="numberSigned"
+            android:inputType="numberDecimal|numberSigned"
             android:ems="10"
             android:id="@+id/edPET"
             android:editable="true"
