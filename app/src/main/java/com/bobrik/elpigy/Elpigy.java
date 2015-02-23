@@ -1,6 +1,7 @@
 package com.bobrik.elpigy;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -14,7 +15,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -44,7 +44,7 @@ public class Elpigy extends Activity {
     private static final int REQUEST_ENABLE_BT = 2;
     private static final int REQUEST_PARAMETERS = 3;
 
-	public static final int ORIENTATION_SENSOR    = 0;
+	//public static final int ORIENTATION_SENSOR    = 0;
 	public static final int ORIENTATION_PORTRAIT  = 1;
 	public static final int ORIENTATION_LANDSCAPE = 2;
 
@@ -72,8 +72,9 @@ public class Elpigy extends Activity {
     public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
+    public static final int MESSAGE_VALUE = 6;
 
-    private static final int DISPLAY_DATA = 6;
+    private static final int DISPLAY_DATA = 7;
 
     private static final int UPDATE_MODE_VALUES = 0;
     private static final int UPDATE_MODE_ALL = 1;
@@ -107,9 +108,9 @@ public class Elpigy extends Activity {
     private static final String BIG_VIEW_TAG = "bigviewtag_%d";
     private static final String SCREENORIENTATION_KEY = "screenorientation";
 
-    public static final int WHITE = 0xffffffff;
-    public static final int BLACK = 0xff000000;
-    public static final int BLUE = 0xff344ebd;
+//    public static final int WHITE = 0xffffffff;
+//    public static final int BLACK = 0xff000000;
+//    public static final int BLUE = 0xff344ebd;
     public static final int DARK_RED = 0xFFBA0000;
     public static final int LIGHT_RED = 0xFFFF0000;
     public static final int COLOR_PETROL = 0xFFFFFF00;
@@ -708,102 +709,118 @@ public class Elpigy extends Activity {
     }
     
     // The Handler that gets information back from the BluetoothService
-    private final Handler mHandlerBT = new Handler() {
-    	
+    private static class MyHandler extends Handler {
+        private final WeakReference<Elpigy> mAct;
+
+        public MyHandler(Elpigy activity) {
+            mAct = new WeakReference<Elpigy>(activity);
+        }
+
         @Override
-        public void handleMessage(Message msg) {        	
-            switch (msg.what) {
-            case MESSAGE_STATE_CHANGE:
-                if(DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
-                switch (msg.arg1) {
-                    case BluetoothSerialService.STATE_CONNECTED:
-                        if (mMenuItemConnect != null) {
-                            mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
-                            mMenuItemConnect.setTitle(R.string.disconnect);
-                        }
+        public void handleMessage(Message msg) {
+            Elpigy act = mAct.get();
+            if (act != null) {
+                switch (msg.what) {
+                    case MESSAGE_STATE_CHANGE:
+                        if (DEBUG) Log.i(LOG_TAG, "MESSAGE_STATE_CHANGE: " + msg.arg1);
+                        switch (msg.arg1) {
+                            case BluetoothSerialService.STATE_CONNECTED:
+                                if (act.mMenuItemConnect != null) {
+                                    act.mMenuItemConnect.setIcon(android.R.drawable.ic_menu_close_clear_cancel);
+                                    act.mMenuItemConnect.setTitle(R.string.disconnect);
+                                }
 
-                        //mTitle.setText( R.string.title_connected_to );
-                        //mTitle.append(" " + mConnectedDeviceName);
-                        Toast.makeText(getApplicationContext(), getString(R.string.toast_connected_to) + " "
-                                + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                        mHandlerBT.sendEmptyMessageDelayed(DISPLAY_DATA, 1000);
+                                //mTitle.setText( R.string.title_connected_to );
+                                //mTitle.append(" " + mConnectedDeviceName);
+                                Toast.makeText(act.getApplicationContext(), act.getString(R.string.toast_connected_to) + " "
+                                        + act.mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                                act.sendGetDataRequest(); // to update RARE data
+                                sendEmptyMessageDelayed(DISPLAY_DATA, 1000);
+                                break;
+
+                            case BluetoothSerialService.STATE_CONNECTING:
+                                act.mLayout.setBackgroundColor(0xFF000000);
+                                // mTitle.setText(R.string.title_connecting);
+                                Toast.makeText(act.getApplicationContext(), R.string.title_connecting, Toast.LENGTH_SHORT).show();
+                                break;
+
+                            case BluetoothSerialService.STATE_LISTEN:
+                            case BluetoothSerialService.STATE_NONE:
+                                if (act.mMenuItemConnect != null) {
+                                    act.mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
+                                    act.mMenuItemConnect.setTitle(R.string.connect);
+                                }
+                                act.mLayout.setBackgroundColor(0xFF000000);
+
+                                //  mTitle.setText(R.string.title_not_connected);
+
+                                break;
+                        }
+                        break;
+                    case MESSAGE_WRITE:
+                        //if (mLocalEcho) {
+                        //byte[] writeBuf = (byte[]) msg.obj;
+                        //mEmulatorView.write(writeBuf, msg.arg1);
+                        //}
+
                         break;
 
-                    case BluetoothSerialService.STATE_CONNECTING:
-                        mLayout.setBackgroundColor(0xFF000000);
-                       // mTitle.setText(R.string.title_connecting);
-                        Toast.makeText(getApplicationContext(), R.string.title_connecting, Toast.LENGTH_SHORT).show();
+                    case MESSAGE_READ:
+                        try {
+                            // data already in mParser.DATA
+                            //if (mParser.Parse()) {
+                            act.requestsPending = 0;
+                            if (act.mActivityVisible) {
+                                if (act.tvPulse.getCurrentTextColor() == 0xFFFFFFFF)
+                                    act.tvPulse.setTextColor(0xFFA0A0A0);
+                                else
+                                    act.tvPulse.setTextColor(0xFFFFFFFF);
+                                act.updateValues((act.mParser.LPGStatus != act.mParser.LPGStatus_old) ? UPDATE_MODE_TAGS : UPDATE_MODE_VALUES);
+                                act.mParser.LPGStatus_old = act.mParser.LPGStatus;
+                            }
+                            //}
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "MESSAGE_READ() failed", e);
+                        }
+
                         break;
 
-                    case BluetoothSerialService.STATE_LISTEN:
-                    case BluetoothSerialService.STATE_NONE:
-                        if (mMenuItemConnect != null) {
-                            mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
-                            mMenuItemConnect.setTitle(R.string.connect);
+                    case MESSAGE_VALUE:
+                        act.tvPulse.setText(String.valueOf(msg.arg1) + "," + String.valueOf(msg.arg2));
+                        break;
+
+                    case MESSAGE_DEVICE_NAME:
+                        // save the connected device's name
+                        act.mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
+                        Toast.makeText(act.getApplicationContext(), act.getString(R.string.toast_connected_to) + " "
+                                + act.mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                        break;
+                    case MESSAGE_TOAST:
+                        Toast.makeText(act.getApplicationContext(), msg.getData().getString(TOAST), Toast.LENGTH_SHORT).show();
+                        break;
+                    case DISPLAY_DATA:
+                        try {
+                            if (mSerialService.getState() == BluetoothSerialService.STATE_CONNECTED) {
+                                act.mLayout.setBackgroundColor(((act.requestsPending > 3) ? DARK_RED : 0xFF000000)); // no data in 5 sec - error indication
+                                if (!msg.getData().containsKey(ParametersActivity.REQUEST)) {
+                                    if (act.requestsPending > 1)
+                                        act.sendGetDataRequest(); // if no data since last 2 sec - send another GetData request
+                                    if (act.mActivityVisible) act.requestsPending++;
+                                } else {
+                                    act.sendParameterRequest(msg);
+                                }
+                            }
+                        } catch (Exception e) {
+                            Log.e(LOG_TAG, "DISPLAY_DATA() failed", e);
                         }
-                        mLayout.setBackgroundColor(0xFF000000);
-
-                      //  mTitle.setText(R.string.title_not_connected);
-
+                        sendEmptyMessageDelayed(DISPLAY_DATA, 1000);
                         break;
                 }
-                break;
-            case MESSAGE_WRITE:
-            	//if (mLocalEcho) {
-            		//byte[] writeBuf = (byte[]) msg.obj;
-            		//mEmulatorView.write(writeBuf, msg.arg1);
-            	//}
-                
-                break;
-
-            case MESSAGE_READ:
-                try {
-                    // data already in mParser.DATA
-                    if (mParser.Parse()) {
-                        requestsPending = 0;
-                        if (mActivityVisible) {
-                            if (tvPulse.getCurrentTextColor() == 0xFFFFFFFF)
-                                tvPulse.setTextColor(0xFFA0A0A0);
-                            else
-                                tvPulse.setTextColor(0xFFFFFFFF);
-                            updateValues((mParser.LPGStatus != mParser.LPGStatus_old) ? UPDATE_MODE_TAGS : UPDATE_MODE_VALUES);
-                            mParser.LPGStatus_old = mParser.LPGStatus;
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "MESSAGE_READ() failed", e);
-                }
-
-                break;
-
-            case MESSAGE_DEVICE_NAME:
-                // save the connected device's name
-                mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
-                Toast.makeText(getApplicationContext(), getString(R.string.toast_connected_to) + " "
-                               + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                break;
-            case MESSAGE_TOAST:
-                Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST), Toast.LENGTH_SHORT).show();
-                break;
-            case DISPLAY_DATA:
-                try {
-                    if (mSerialService.getState() == BluetoothSerialService.STATE_CONNECTED) {
-                        mLayout.setBackgroundColor(((requestsPending > 3)? DARK_RED: 0xFF000000)); // no data in 5 sec - error indication
-                        if (!msg.getData().containsKey(ParametersActivity.REQUEST)) {
-                            if (requestsPending > 1)  sendGetDataRequest(); // if no data since last 2 sec - send another GetData request
-                            if (mActivityVisible)  requestsPending++;
-                        } else {
-                            sendParameterRequest(msg);
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "DISPLAY_DATA() failed", e);
-                }
-                mHandlerBT.sendEmptyMessageDelayed(DISPLAY_DATA, 1000);
-                break;
             }
         }
-    };
+    }
+
+    private final MyHandler mHandlerBT = new MyHandler(this);
 
     private byte[] toBytes(int i)
     {
@@ -1010,7 +1027,7 @@ public class Elpigy extends Activity {
     private void doStartRecording() {
     	File sdCard = Environment.getExternalStorageDirectory();
     	
-    	SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss");
+    	SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH);
     	String currentDateTimeString = format.format(new Date());
     	String fileName = sdCard.getAbsolutePath() + "/elpigy_" + currentDateTimeString + ".log";
 

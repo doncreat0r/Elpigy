@@ -55,7 +55,7 @@ public class BluetoothSerialService {
     private boolean mAllowInsecureConnections;
     
     private Context mContext;
-    private ByteQueue mByteQueue;
+   // private ByteQueue mByteQueue;
     private ResponseParser mParser;
 
     // Constants that indicate the current connection state
@@ -76,7 +76,7 @@ public class BluetoothSerialService {
         mContext = context;
         mParser = parser;
         mAllowInsecureConnections = true;
-        mByteQueue = new ByteQueue(8192);
+      //  mByteQueue = new ByteQueue(8192);
     }
 
     /**
@@ -342,16 +342,56 @@ public class BluetoothSerialService {
 
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
-            byte[] buffer = new byte[8192];
-            int bytes;
+            byte[] buffer = new byte[512];
+            byte[] queue = new byte[8192];
+            int bytes, i, j, dist, head = 0, resp = 0, tail = 0;
 
             // Keep listening to the InputStream while connected
             while (true) {
                 try {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
-                    // Send the obtained bytes to the UI Activity
-                    if (( mByteQueue.getBytesAvailable() == 0 && buffer[0] == 0x42 ) || mByteQueue.getBytesAvailable() > 0)
+                    // Put data into queue
+                    for (i = 0; i < bytes; i++) {
+                        if (head >= queue.length) head = 0;
+                        queue[head] = buffer[i];
+                        head++;
+                    }
+                    // head will point to the 1st byte AFTER the received data
+                    // now walk through queue getting all received responses (or just one, or none)
+                    tail = resp;  // go back to last partial.received 0x42 response
+                    while (head != tail) {
+                        // if byte @ head is 0x42 - get the response
+                        if (queue[tail] == 0x42) {
+                            resp = tail;
+                            // next byte after head is the response length
+                            i = resp + 1;
+                            if (i >= queue.length) i = 0;
+                            // current amount of data in the queue buffer
+                            if (head >= resp)
+                                dist = head - resp;
+                            else
+                                dist = queue.length - resp + head;
+                            //mHandler.obtainMessage(Elpigy.MESSAGE_VALUE, dist, (queue[i] & 0xFF), 0).sendToTarget();
+                            // if distance between head and tail >= current response length - get the response data
+                            if ((queue[i] & 0xFF) > 0 && (queue[i] & 0xFF) <= dist) {
+                                // Copy message from the queue to DATA buffer
+                                for (j = 0; j < (queue[i] & 0xFF); j++) {
+                                    mParser.DATA[j] = queue[resp];
+                                    resp++;  // we wouldn't miss the head == tail condition
+                                    if (resp >= queue.length) resp = 0;
+                                }
+                                tail = resp - 1;
+                                // Send the obtained bytes to the UI Activity
+                                if (mParser.Parse())
+                                    mHandler.obtainMessage(Elpigy.MESSAGE_READ, (queue[i] & 0xFF), -1, mParser.DATA).sendToTarget();
+                            }
+                        }
+                        tail++;
+                        if (tail >= queue.length) tail = 0;
+                    }
+                    Thread.sleep(100);
+                    /*if (( mByteQueue.getBytesAvailable() == 0 && buffer[0] == 0x42 ) || mByteQueue.getBytesAvailable() > 0)
                     {
                         mByteQueue.write(buffer, 0, Math.min(bytes, 8192 - mByteQueue.getBytesAvailable()));
                         if (mByteQueue.getBytesAvailable() >= ResponseParser.RESPONSE_LENGTH) {
@@ -359,8 +399,7 @@ public class BluetoothSerialService {
                             mByteQueue.read(mParser.DATA, 0, mByteQueue.getBytesAvailable());
                             mHandler.obtainMessage(Elpigy.MESSAGE_READ, mByteQueue.getBytesAvailable(), -1, mParser.DATA).sendToTarget();
                         }
-                    }
-                    Thread.sleep(100);
+                    }*/
                 } catch (Exception e) {
                     Log.e(TAG, "disconnected", e);
                     connectionLost();
@@ -398,10 +437,10 @@ public class BluetoothSerialService {
     	mAllowInsecureConnections = allowInsecureConnections;
     }
     
-    public boolean getAllowInsecureConnections() {
+/*    public boolean getAllowInsecureConnections() {
     	return mAllowInsecureConnections;
     }
-
+*/
 }
 
 
@@ -410,6 +449,7 @@ public class BluetoothSerialService {
  * Only allows one producer and one consumer.
  */
 
+/**
 class ByteQueue {
     public ByteQueue(int size) {
         mBuffer = new byte[size];
@@ -508,3 +548,4 @@ class ByteQueue {
     private int mStoredBytes;
 }
 
+*/

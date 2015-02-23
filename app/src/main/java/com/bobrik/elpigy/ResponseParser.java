@@ -8,14 +8,14 @@ public class ResponseParser {
 
     // raw data and requests, note: some requests needs checksum update!
     public byte[] DATA;
-    public static final int RESPONSE_LENGTH = 90;
+    //public static final int RESPONSE_LENGTH = 90;
     public static byte[] REQUEST_GET_DATA = new byte[] {0x62, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62};
     public static byte[] REQUEST_ADD_LPG = new byte[] {0x62, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
     public static byte[] REQUEST_ADD_PET = new byte[] {0x62, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
     public static byte[] REQUEST_RESET_TRIP = new byte[] {0x62, 0x03, 0x00, 0x00, 0x00, 0x00, 0x65};
     public static byte[] REQUEST_SET_LPG_FLOW = new byte[] {0x62, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
     public static byte[] REQUEST_SET_PET_FLOW = new byte[] {0x62, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00};
-    public static byte[] REQUEST_REBOOT = new byte[] {0x62, (byte)0xFF, 0x00, 0x00, 0x00, 0x00, 0x61};
+    //public static byte[] REQUEST_REBOOT = new byte[] {0x62, (byte)0xFF, 0x00, 0x00, 0x00, 0x00, 0x61};
 
     public static final int CELL_SMALL_1_1 = 0;
     public static final int CELL_SMALL_1_2 = 1;
@@ -31,6 +31,12 @@ public class ResponseParser {
     public static final int CELL_BIG_1_2 = 1;
     public static final int CELL_BIG_2_1 = 2;
     public static final int CELL_BIG_2_2 = 3;
+
+    public static final int TYPE_RESP_FAST = 1;
+    public static final int TYPE_RESP_SLOW = 2;
+    public static final int TYPE_RESP_RARE = 4;
+    public static final int TYPE_RESP_PARK = 8;
+
 
     // parsed data
     public double LPGAvgInjTime;
@@ -83,6 +89,9 @@ public class ResponseParser {
     public int PETinjFlow;
     public int LPGerrBits;
 
+    public int P1, P2;
+    public int workMode;
+
     /**
      *  Get unsigned byte as integer from buffer
      */
@@ -125,60 +134,96 @@ public class ResponseParser {
         REQ[REQ.length-1] = (byte)cs;
     }
 
+    private void ParseFast() {
+
+        LPGAvgInjTime = getWORD(6) / 4.0 / 187.0;  // in ms
+        PETAvgInjTime = getWORD(4) / 4.0 / 187.0;
+        LPGRPM = getWORD(8);
+        LPGPcol = getWORD(10) / 100.0;
+        LPGPsys = getWORD(12) / 100.0;
+        LPGVbat = getWORD(14) / 100.0;
+        OBDRPM = getWORD(16) / 4; // integer division!
+        LPGStatus = getUBYTE(18);
+        OBDSpeed = getUBYTE(19);
+        OBDMap = getUBYTE(20) / 100.0;
+        OBDTA = getUBYTE(21) / 2.0 - 64;
+        OBDSTFT = (getUBYTE(22) - 128) / 1.27;
+        OBDLTFT = (getUBYTE(23) - 128) / 1.27;
+        OBDerror = getUBYTE(24);
+        OBDTPS = getUBYTE(25) * 100.0 / 255.0;   // in %
+        OBDLoad = getUBYTE(26) * 100.0 / 255.0;  // in %
+        LPGerrBits = getUBYTE(27);
+        LPGPerHour = getWORD(28) / 1000.0;
+        PETPerHour = getWORD(30) / 1000.0;
+
+    }
+
+    private void ParseSlow() {
+
+        OutsideTemp = getBYTE(5) / 2.0;
+        LPGTred = (short) getWORD(6) / 100.0;
+        LPGTgas = (short) getWORD(8) / 100.0;
+        OBDECT = getUBYTE(10) - 40;
+        OBDIAT = getUBYTE(12) - 40;
+
+        LPGPer100Short = getWORD(14) / 1000.0;
+        LPGPer100Long = getWORD(18) / 1000.0;
+        LPGTripDist = getDWORD(38) / 100000.0; // in km (from cm)
+        LPGTripSpent = getDWORD(30) / 1.0; // in some volume units
+        LPGTripTime = getDWORD(46) / 1.0;  // in 10ms units
+        if (LPGTripDist > 0.1)
+            LPGPer100Trip = getDWORD(30) / 100.0 / (getDWORD(38) / 100.0);
+
+        PETPer100Short = getWORD(16) / 1000.0;
+        PETPer100Long = getWORD(20) / 1000.0;
+        PETTripDist = getDWORD(42) / 100000.0; // in km (from cm)
+        PETTripSpent = getDWORD(34) / 1.0; // in some volume units
+        PETTripTime = getDWORD(50) / 1.0;  // in 10ms units
+        if (PETTripDist > 0.1)
+            PETPer100Trip = getDWORD(34) / 100.0 / (getDWORD(42) / 100.0);
+
+        LPGInTank = getDWORD(22) / 10000000.0;
+        PETInTank = getDWORD(26) / 10000000.0;
+
+    }
+
+    private void ParseRare() {
+
+        EEPROMUpdateCount = getWORD(4);
+
+        LPGinjFlow = getUBYTE(6);
+        PETinjFlow = getUBYTE(7);
+
+    }
+
+    private void ParsePark() {
+
+        P1 = getWORD(4);
+        P2 = getWORD(6);
+    }
+
     public boolean Parse() {
-        if (DATA[0] != 0x42 || DATA[1] > 64)
+        int i, cs = 0;
+
+        if (DATA[0] == 0x42)
+            for (i = 0; i < getUBYTE(1); i++)
+                cs += getUBYTE(i);
+        else
             return false;
 
+        // checksum not correct
+        // TODO: checksum
+        //if ((cs  & 0xFF) != (DATA[getUBYTE(1)-1] & 0xFF))
+        //    return false;
+
         // parse data from response buffer
-        LPGAvgInjTime = getWORD(4) / 4.0 / 187.0;  // in ms
-        PETAvgInjTime = getWORD(2) / 4.0 / 187.0;
-        LPGRPM = getWORD(6);
-        LPGPcol = getWORD(8) / 100.0;
-        LPGPsys = getWORD(10) / 100.0;
-        LPGTred = (short) getWORD(12) / 100.0;
-        LPGTgas = (short) getWORD(14) / 100.0;
-        LPGVbat = getWORD(16) / 100.0;
-
-        OBDRPM = getWORD(18) / 4; // integer division!
-        LPGStatus = getUBYTE(20);
-        OBDSpeed = getUBYTE(21);
-        OBDLoad = getUBYTE(22) * 100.0 / 255.0;  // in %
-        OBDECT = getUBYTE(23) - 40;
-        OBDMap = getUBYTE(24) / 100.0;
-        OBDTA = getUBYTE(25) / 2.0 - 64;
-        OBDIAT = getUBYTE(26) - 40;
-        OBDSTFT = (getUBYTE(27) - 128) / 1.27;
-        OBDLTFT = (getUBYTE(28) - 128) / 1.27;
-        OBDerror = getUBYTE(29);
-        OBDTPS = getUBYTE(30) * 100.0 / 255.0;   // in %
-
-        LPGPerHour = getWORD(32) / 1000.0;
-        LPGPer100Short = getWORD(36) / 1000.0;
-        LPGPer100Long = getWORD(42) / 1000.0;
-        LPGTripDist = getDWORD(66) / 100000.0; // in km (from cm)
-        LPGTripSpent = getDWORD(58) / 1.0; // in some volume units
-        LPGTripTime = getDWORD(74) / 1.0;  // in 10ms units
-        if (LPGTripDist > 0.1)
-            LPGPer100Trip = getDWORD(58) / 100.0 / (getDWORD(66) / 100.0);
-
-        PETPerHour = getWORD(34) / 1000.0;
-        PETPer100Short = getWORD(38) / 1000.0;
-        PETPer100Long = getWORD(44) / 1000.0;
-        PETTripDist = getDWORD(70) / 100000.0; // in km (from cm)
-        PETTripSpent = getDWORD(62) / 1.0; // in some volume units
-        PETTripTime = getDWORD(80) / 1.0;  // in 10ms units
-        if (PETTripDist > 0.1)
-            PETPer100Trip = getDWORD(62) / 100.0 / (getDWORD(70) / 100.0);
-
-        LPGInTank = getDWORD(46) / 10000000.0;
-        PETInTank = getDWORD(50) / 10000000.0;
-
-        OutsideTemp = getBYTE(41) / 2.0;
-        EEPROMUpdateCount = getWORD(84);
-
-        LPGinjFlow = getUBYTE(86);
-        PETinjFlow = getUBYTE(87);
-        LPGerrBits = getUBYTE(31);
+        workMode = getUBYTE(3);
+        switch (getUBYTE(2)) {
+            case TYPE_RESP_FAST: ParseFast(); break;
+            case TYPE_RESP_SLOW: ParseSlow(); break;
+            case TYPE_RESP_RARE: ParseRare(); break;
+            case TYPE_RESP_PARK: ParsePark(); break;
+        }
 
         return true;
     }
