@@ -353,13 +353,13 @@ public class BluetoothSerialService {
                     bytes = mmInStream.read(buffer);
                     // Put data into queue
                     for (i = 0; i < bytes; i++) {
-                        if (head >= queue.length) head = 0;
                         queue[head] = buffer[i];
                         head++;
+                        if (head >= queue.length) head = 0;
                     }
                     // head will point to the 1st byte AFTER the received data
-                    // now walk through queue getting all received responses (or just one, or none)
-                    tail = resp;  // go back to last partial.received 0x42 response
+                    // now walk through the queue getting all received responses (or just one, or none)
+                    tail = resp;  // go back to last partially received 0x42 response
                     while (head != tail) {
                         // if byte @ head is 0x42 - get the response
                         if (queue[tail] == 0x42) {
@@ -372,7 +372,7 @@ public class BluetoothSerialService {
                                 dist = head - resp;
                             else
                                 dist = queue.length - resp + head;
-                            //mHandler.obtainMessage(Elpigy.MESSAGE_VALUE, dist, (queue[i] & 0xFF), 0).sendToTarget();
+                            mHandler.obtainMessage(Elpigy.MESSAGE_VALUE, head, (queue[i] & 0xFF), 0).sendToTarget();
                             // if distance between head and tail >= current response length - get the response data
                             if ((queue[i] & 0xFF) > 0 && (queue[i] & 0xFF) <= dist) {
                                 // Copy message from the queue to DATA buffer
@@ -381,7 +381,10 @@ public class BluetoothSerialService {
                                     resp++;  // we wouldn't miss the head == tail condition
                                     if (resp >= queue.length) resp = 0;
                                 }
-                                tail = resp - 1;
+                                if (resp > 0)
+                                    tail = resp - 1;
+                                else
+                                    tail = queue.length - 1;
                                 // Send the obtained bytes to the UI Activity
                                 if (mParser.Parse())
                                     mHandler.obtainMessage(Elpigy.MESSAGE_READ, (queue[i] & 0xFF), -1, mParser.DATA).sendToTarget();

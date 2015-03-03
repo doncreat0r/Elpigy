@@ -7,14 +7,21 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.FragmentTransaction;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.view.ViewPager;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -38,7 +45,8 @@ import android.util.Log;
 import android.widget.Toast;
 
 
-public class Elpigy extends Activity {
+public class Elpigy extends FragmentActivity implements
+        ActionBar.TabListener {
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -140,6 +148,9 @@ public class Elpigy extends Activity {
 
     private TextView tvPulse;
 
+    MyAdapter mAdapter;
+
+    ViewPager mPager;
 
 	/** Called when the activity is first created. */
 	@Override
@@ -236,7 +247,45 @@ public class Elpigy extends Activity {
 			Log.e(LOG_TAG, "+++ DONE IN ON CREATE +++");
 	}
 
-	@Override
+    public static class MyAdapter extends FragmentPagerAdapter {
+        public MyAdapter(FragmentManager fm) {
+            super(fm);
+        }
+
+        @Override
+        public int getCount() {
+            return 3;
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return MainFragment.newInstance(mParser);
+        }
+
+        // Returns the page title for the top indicator
+        @Override
+        public CharSequence getPageTitle(int position) {
+            return "Page " + position;
+        }
+
+    }
+
+    @Override
+    public void onTabSelected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
+
+    }
+
+    @Override
+    public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
+
+    }
+
+    @Override
+    public void onTabReselected(ActionBar.Tab tab, FragmentTransaction fragmentTransaction) {
+
+    }
+
+    @Override
 	public void onStart() {
 		super.onStart();
 
@@ -707,7 +756,7 @@ public class Elpigy extends Activity {
             }
         }
     }
-    
+
     // The Handler that gets information back from the BluetoothService
     private static class MyHandler extends Handler {
         private final WeakReference<Elpigy> mAct;
