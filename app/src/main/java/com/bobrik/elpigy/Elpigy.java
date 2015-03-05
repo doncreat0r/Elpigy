@@ -48,9 +48,6 @@ public class Elpigy extends Activity {
 	public static final int ORIENTATION_PORTRAIT  = 1;
 	public static final int ORIENTATION_LANDSCAPE = 2;
 
-
-    //private static TextView mTitle;
-
     // Name of the connected device
     private String mConnectedDeviceName = null;
 
@@ -159,11 +156,6 @@ public class Elpigy extends Activity {
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.main);
         //getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);
-
-        // Set up the custom title
-        //mTitle = (TextView) findViewById(R.id.title_left_text);
-        //mTitle.setText(R.string.app_name);
-        //mTitle = (TextView) findViewById(R.id.title_right_text);
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         mParser = new ResponseParser();
