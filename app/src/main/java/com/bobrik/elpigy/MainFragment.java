@@ -3,6 +3,7 @@ package com.bobrik.elpigy;
 /**
  * Created by DBobrik on 001 01.03.2015.
  */
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -28,11 +29,10 @@ public class MainFragment extends Fragment {
     public static final int COLOR_ERROR = 0xFFFF00BB;
     public static final int COLOR_YELLOW = 0xffffff00;
     public static final int COLOR_GREEN = 0xff02ff00;
+    private static final String SMALL_VIEW_TAG = "smallviewtag_%d";
+    private static final String BIG_VIEW_TAG = "bigviewtag_%d";
 
     private ResponseParser mParser;
-
-    // Main hor/vert. layout
-    private LinearLayout mLayout;
 
     // label elements in 2x2
     private LinearLayout layBigs[] = new LinearLayout[4];
@@ -66,12 +66,82 @@ public class MainFragment extends Fragment {
 
         View V = inflater.inflate(R.layout.fragment_main, container, false);
 
-        mLayout = (LinearLayout) V.findViewById(R.id.mlayout);
         LinearLayout layBig = (LinearLayout) V.findViewById(R.id.layout_big);
         LinearLayout laySmall = (LinearLayout) V.findViewById(R.id.layout_small);
         tvPulse = (TextView) V.findViewById(R.id.tvPulse);
 
+        // fill buffers with layout matrix
+        for (int i=0; i < layBig.getChildCount(); i++) {
+            LinearLayout layTmp = (LinearLayout) layBig.getChildAt(i);
+            //Log.e(LOG_TAG, String.valueOf(i));
+            for (int j=0; j < layTmp.getChildCount(); j++) {
+                int idx = i * layTmp.getChildCount() + j;
+                if (idx < layBigs.length) {
+                    layBigs[idx] = (LinearLayout) layTmp.getChildAt(j);
+                    //layBigs[idx].setTag(0);
+                    //updateBigTextViews(layBigs[idx], idx, 0);
+                    layBigs[idx].setOnClickListener(new View.OnClickListener() {
+                        public void onClick(View v) {
+                            if (v.getTag() != null) {
+                                int i = ((Integer) v.getTag()) + 1;
+                                if (i > 3) i = 0;
+                                v.setTag(i);
+                                //Toast.makeText(getApplicationContext(), String.valueOf(i), Toast.LENGTH_SHORT).show();
+                                updateBigTextViews((LinearLayout) v, -1, UPDATE_MODE_ALL);
+                            }
+                        }
+                    });
+                    //layBigs[i * layBig.getChildCount() + j].setTag(1);  // will be updated in updateprefs
+                }
+            }
+        }
+        for (int i=0; i < laySmall.getChildCount(); i++) {
+            LinearLayout layTmp = (LinearLayout) laySmall.getChildAt(i);
+
+            for (int j=0; j < layTmp.getChildCount(); j++) {
+                int idx = i * layTmp.getChildCount() + j;
+                if (idx < laySmalls.length) {
+                    //Log.e(LOG_TAG, String.valueOf(idx));
+                    laySmalls[idx] = (LinearLayout) layTmp.getChildAt(j);
+                    //laySmalls[idx].setTag(0);
+                    //updateSmallTextViews(laySmalls[idx], idx, 0);
+                    laySmalls[idx].setOnClickListener(new View.OnClickListener() {
+                        public void onClick(View v) {
+                            if (v.getTag() != null) {
+                                int i = ((Integer) v.getTag()) + 1;
+                                if (i > 3) i = 0;
+                                v.setTag(i);
+                                updateSmallTextViews((LinearLayout) v, -1, UPDATE_MODE_ALL);
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
         return V;
+    }
+
+    public void readPrefs(SharedPreferences prefs) {
+        for (int i=0; i<laySmalls.length; i++)
+            if (laySmalls[i] != null)
+                laySmalls[i].setTag(prefs.getInt(String.format(SMALL_VIEW_TAG, i), 0));
+        for (int i=0; i<layBigs.length; i++)
+            if (layBigs[i] != null)
+                layBigs[i].setTag(prefs.getInt(String.format(BIG_VIEW_TAG, i), 0));
+
+    }
+
+    public void writePrefs(SharedPreferences prefs) {
+        //Toast.makeText(getApplicationContext(), "writing prefs", Toast.LENGTH_SHORT).show();
+        SharedPreferences.Editor editor = prefs.edit();
+        for (int i=0; i<laySmalls.length; i++)
+            if (laySmalls[i] != null && laySmalls[i].getTag() != null)
+                editor.putInt(String.format(SMALL_VIEW_TAG, i), (Integer) laySmalls[i].getTag());
+        for (int i=0; i<layBigs.length; i++)
+            if (layBigs[i] != null)
+                editor.putInt(String.format(BIG_VIEW_TAG, i), (Integer) layBigs[i].getTag());
+        editor.apply();
     }
 
     private void updateViewCaptions(boolean needUpdate, LinearLayout ll, int captionId, int unitId, String value) {
@@ -338,6 +408,20 @@ public class MainFragment extends Fragment {
                         break;
                 }
                 break;
+        }
+    }
+
+    public void updateValues(int updateMode) {
+        for (int i = 0; i < layBigs.length; i++)
+            if (layBigs[i] != null) { // those layouts contain textviews
+                //Log.i(LOG_TAG, "Updating big values...");
+                updateBigTextViews(layBigs[i], i, updateMode);
+            }
+        //Log.i(LOG_TAG, "Updating small values...");
+        for (int i = 0; i < laySmalls.length; i++) {
+            if (laySmalls[i] != null) {
+                updateSmallTextViews(laySmalls[i], i, updateMode);
+            }
         }
     }
 
