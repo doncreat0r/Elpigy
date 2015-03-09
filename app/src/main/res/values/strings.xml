@@ -2,7 +2,7 @@
 <resources>
     
     <string name="app_name">Elpigy</string>
-    <string name="app_version">1.0.1</string>
+    <string name="app_version">1.0.2</string>
     
 	<string name="alert_dialog_no_bt">Cannot use this application without bluetooth.</string>
 	<string name="alert_dialog_yes">Yes</string>
@@ -44,6 +44,7 @@
     <string name="parameters">Parameters</string>
     <string name="preferences">Preferences</string>
     <string name="special_keys">Special keys</string>
+    <string name="osa_table">OSA table</string>
     
     <!-- Preference dialog -->
     <string name="general_preferences">General</string>

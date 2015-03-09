@@ -24,6 +24,8 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 import android.bluetooth.BluetoothAdapter;
@@ -47,6 +49,9 @@ public class Elpigy extends Activity {
 	//public static final int ORIENTATION_SENSOR    = 0;
 	public static final int ORIENTATION_PORTRAIT  = 1;
 	public static final int ORIENTATION_LANDSCAPE = 2;
+
+    public static final int REQUEST_MODE_DATA = 1;
+    public static final int REQUEST_MODE_OSA = 2;
 
     // Name of the connected device
     private String mConnectedDeviceName = null;
@@ -97,6 +102,7 @@ public class Elpigy extends Activity {
     private String mAutoConnectMac = null;
 
     private int mScreenOrientation = 0;
+    private int mRequestMode = REQUEST_MODE_DATA;
 
     private static final String ALLOW_INSECURE_CONNECTIONS_KEY = "allowinsecureconnections";
     private static final String AUTO_CONNECT_KEY = "autoconnect";
@@ -105,7 +111,7 @@ public class Elpigy extends Activity {
     private static final String BIG_VIEW_TAG = "bigviewtag_%d";
     private static final String SCREENORIENTATION_KEY = "screenorientation";
 
-//    public static final int WHITE = 0xffffffff;
+    public static final int COLOR_WHITE = 0xffffffff;
 //    public static final int BLACK = 0xff000000;
 //    public static final int BLUE = 0xff344ebd;
     public static final int DARK_RED = 0xFFBA0000;
@@ -124,6 +130,7 @@ public class Elpigy extends Activity {
     private MenuItem mMenuItemStartStopRecording;
     
     private Dialog mAboutDialog;
+    private Dialog mOSADialog;
     private ResponseParser mParser;
 
     // Main hor/vert. layout
@@ -769,6 +776,7 @@ public class Elpigy extends Activity {
                                     act.tvPulse.setTextColor(0xFFFFFFFF);
                                 act.updateValues((act.mParser.LPGStatus != act.mParser.LPGStatus_old) ? UPDATE_MODE_TAGS : UPDATE_MODE_VALUES);
                                 act.mParser.LPGStatus_old = act.mParser.LPGStatus;
+                                act.updateOSADialog(false);
                             }
                             //}
                         } catch (Exception e) {
@@ -827,7 +835,14 @@ public class Elpigy extends Activity {
     }
 
     private void sendGetDataRequest() {
-        send(ResponseParser.REQUEST_GET_DATA);
+        switch (mRequestMode) {
+            case REQUEST_MODE_OSA:
+                send(ResponseParser.REQUEST_GET_OSA);
+                break;
+            default:
+                send(ResponseParser.REQUEST_GET_DATA);
+                break;
+        }
     }
 
     private void sendParameterRequest(Message msg) {
@@ -985,15 +1000,10 @@ public class Elpigy extends Activity {
         case R.id.preferences:
         	doPreferences();
             return true;
-        case R.id.menu_start_stop_save:
-        	if (mMenuItemStartStopRecording.getTitle() == getString(R.string.menu_stop_logging) ) {
-        		doStopRecording();
-        	}	
-        	else {
-        		doStartRecording();
-        	}
+        case R.id.osa_table:
+            Toast.makeText(getApplicationContext(), "OSA reading...", Toast.LENGTH_SHORT).show();
+            showOSADialog();
             return true;
-            
         case R.id.menu_about:
         	showAboutDialog();
             return true;
@@ -1016,22 +1026,63 @@ public class Elpigy extends Activity {
         openOptionsMenu();
     }
 */
-    private void doStartRecording() {
-    	File sdCard = Environment.getExternalStorageDirectory();
-    	
-    	SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.ENGLISH);
-    	String currentDateTimeString = format.format(new Date());
-    	String fileName = sdCard.getAbsolutePath() + "/elpigy_" + currentDateTimeString + ".log";
+    private void showOSADialog() {
+        mOSADialog = new Dialog(Elpigy.this);
+        mOSADialog.setContentView(R.layout.osa_table);
+        mRequestMode = REQUEST_MODE_OSA;
+        mParser.ClearOSA();
 
-    	mMenuItemStartStopRecording.setTitle(R.string.menu_stop_logging);
-        Toast.makeText(getApplicationContext(), getString(R.string.menu_logging_started) + "\n\n" + fileName, Toast.LENGTH_LONG).show();
+        mOSADialog.setOnDismissListener( new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                mRequestMode = REQUEST_MODE_DATA;
+                sendGetDataRequest();
+            }
+        });
+        mOSADialog.setOnCancelListener( new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialogInterface) {
+                mRequestMode = REQUEST_MODE_DATA;
+                sendGetDataRequest();
+            }
+        });
+
+        TableLayout osa = (TableLayout) mOSADialog.findViewById(R.id.osatable);
+        osa.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mOSADialog.dismiss();
+            }
+
+        });
+        sendGetDataRequest();
+        mOSADialog.show();
     }
-    
-    private void doStopRecording() {
-    	mMenuItemStartStopRecording.setTitle(R.string.menu_start_logging);    	
-        Toast.makeText(getApplicationContext(), getString(R.string.menu_logging_stopped), Toast.LENGTH_SHORT).show();
+
+    private void updateOSADialog(boolean force) {
+        if (mRequestMode == REQUEST_MODE_OSA && (mParser.OSAChanged || force) ) {
+            TableLayout osa = (TableLayout) mOSADialog.findViewById(R.id.osatable);
+
+            // looping through osa_table children, skip the top one
+            for (int i = 1; i < osa.getChildCount(); i++) {
+                TableRow row = (TableRow) osa.getChildAt(i);
+                TextView injTime = (TextView) row.getChildAt(0);
+                // also skip the zero TextView
+                for (int j = 1; j < row.getChildCount(); j++) {
+                    TextView txt = (TextView) row.getChildAt(j);
+                    int idx = (i-1)*5 + (j-1); // OSA value index in the table
+                    int inj = Integer.valueOf(injTime.getText().toString());
+                    if (idx < mParser.OSATable.length) {
+                        txt.setText(String.valueOf(mParser.OSATable[idx]));
+                        if (mParser.LPGAvgInjTime < inj && mParser.LPGRPM < ((j+1)*1000) )
+                            txt.setTextColor(COLOR_WHITE);
+                        else
+                            txt.setTextColor(COLOR_GREEN);
+                    }
+                }
+            }
+        }
     }
-    
 
 	private void showAboutDialog() {
 		mAboutDialog = new Dialog(Elpigy.this);

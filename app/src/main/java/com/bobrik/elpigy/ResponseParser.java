@@ -9,7 +9,9 @@ public class ResponseParser {
     // raw data and requests, note: some requests needs checksum update!
     public byte[] DATA;
     //public static final int RESPONSE_LENGTH = 90;
-    public static byte[] REQUEST_GET_DATA = new byte[] {0x62, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62};
+    public static byte[] REQUEST_STOP_DATA = new byte[] {0x62, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62};
+    public static byte[] REQUEST_GET_DATA = new byte[] {0x62, 0x00, 0x01, 0x00, 0x00, 0x00, 0x63};
+    public static byte[] REQUEST_GET_OSA = new byte[] {0x62, 0x00, 0x02, 0x00, 0x00, 0x00, 0x64};
     public static byte[] REQUEST_ADD_LPG = new byte[] {0x62, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
     public static byte[] REQUEST_ADD_PET = new byte[] {0x62, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
     public static byte[] REQUEST_RESET_TRIP = new byte[] {0x62, 0x03, 0x00, 0x00, 0x00, 0x00, 0x65};
@@ -36,6 +38,7 @@ public class ResponseParser {
     public static final int TYPE_RESP_SLOW = 2;
     public static final int TYPE_RESP_RARE = 4;
     public static final int TYPE_RESP_PARK = 8;
+    public static final int TYPE_RESP_OSA1 = 16;
 
 
     // parsed data
@@ -91,6 +94,9 @@ public class ResponseParser {
 
     public int P1, P2;
     public int workMode;
+
+    public byte OSATable[] = new byte[25];
+    public boolean OSAChanged = false;
 
     /**
      *  Get unsigned byte as integer from buffer
@@ -202,6 +208,20 @@ public class ResponseParser {
         P2 = getWORD(6);
     }
 
+    private void ParseOSA() {
+        OSAChanged = false;
+        for (int i = 0; i < 25; i++) {
+            if (OSATable[i] != getBYTE(i+4))  OSAChanged = true;
+            OSATable[i] = getBYTE(i+4);
+        }
+    }
+
+    public void ClearOSA() {
+        for (int i = 0; i < 25; i++) {
+            OSATable[i] = 0;
+        }
+    }
+
     public boolean Parse() {
         int i, cs = 0;
 
@@ -223,6 +243,7 @@ public class ResponseParser {
             case TYPE_RESP_SLOW: ParseSlow(); break;
             case TYPE_RESP_RARE: ParseRare(); break;
             case TYPE_RESP_PARK: ParsePark(); break;
+            case TYPE_RESP_OSA1: ParseOSA();  break;
         }
 
         return true;
