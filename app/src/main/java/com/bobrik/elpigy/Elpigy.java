@@ -1074,7 +1074,8 @@ public class Elpigy extends Activity {
                     int inj = Integer.valueOf(injTime.getText().toString());
                     if (idx < mParser.OSATable.length) {
                         txt.setText(String.valueOf(mParser.OSATable[idx]));
-                        if (mParser.LPGAvgInjTime < inj && mParser.LPGRPM < ((j+1)*1000) )
+                        // this isn't working yet
+                        if (mParser.LPGAvgInjTime < inj && mParser.LPGRPM > ((j+1)*1000) )
                             txt.setTextColor(COLOR_WHITE);
                         else
                             txt.setTextColor(COLOR_GREEN);
