@@ -387,7 +387,7 @@ public class BluetoothSerialService {
                                     tail = queue.length - 1;
                                 // Send the obtained bytes to the UI Activity
                                 if (mParser.Parse())
-                                    mHandler.obtainMessage(Elpigy.MESSAGE_READ, (queue[i] & 0xFF), -1, mParser.DATA).sendToTarget();
+                                    mHandler.obtainMessage(Elpigy.MESSAGE_READ, (queue[i] & 0xFF), mParser.packetType, mParser.DATA).sendToTarget();
                             }
                         }
                         tail++;

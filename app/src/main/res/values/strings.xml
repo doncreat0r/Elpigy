@@ -139,6 +139,11 @@
     <string name="lpg_rpm">RPM</string>
     <string name="obd_rpm">RPM OBD</string>
 
+    <!-- log texts -->
+    <string name="log_started">Connected to TCU...</string>
+    <string name="log_tripdone" formatted="false">Trip done: LPG: %.1f l, %.1f km, %02d:%02d, rem %.1f l, petrol: %.1f l, %.1f km, %02d:%02d, rem %.1f l, amb: %.1f °C.</string>
+    <string name="log_lpgfill" formatted="false">LPG added: %.1f l, was: %.1f l</string>
+    <string name="log_petfill" formatted="false">Pet added: %.1f l, was: %.1f l</string>
 
 
 </resources>

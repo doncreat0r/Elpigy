@@ -1,9 +1,11 @@
 package com.bobrik.elpigy;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Calendar;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -15,6 +17,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.text.format.DateFormat;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -24,6 +27,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -99,6 +103,7 @@ public class Elpigy extends Activity {
     private boolean mAllowInsecureConnections = true;
     private boolean mAutoConnect = false;
     private boolean mActivityVisible = false;
+    private boolean mTripLogged = true;
     private String mAutoConnectMac = null;
 
     private int mScreenOrientation = 0;
@@ -131,6 +136,7 @@ public class Elpigy extends Activity {
     
     private Dialog mAboutDialog;
     private Dialog mOSADialog;
+    private Dialog mPADialog = null;
     private ResponseParser mParser;
 
     // Main hor/vert. layout
@@ -238,6 +244,8 @@ public class Elpigy extends Activity {
 	@Override
 	public void onStart() {
 		super.onStart();
+
+        writeLOG("Started...");
 
         //mLayout.setOrientation(LinearLayout.VERTICAL);
 		if (DEBUG)
@@ -731,6 +739,7 @@ public class Elpigy extends Activity {
 
                                 //mTitle.setText( R.string.title_connected_to );
                                 //mTitle.append(" " + mConnectedDeviceName);
+                                act.writeLOG(act.getString(R.string.log_started));
                                 Toast.makeText(act.getApplicationContext(), act.getString(R.string.toast_connected_to) + " "
                                         + act.mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                                 act.sendGetDataRequest(); // to update RARE data
@@ -766,9 +775,31 @@ public class Elpigy extends Activity {
 
                     case MESSAGE_READ:
                         try {
+                            if (msg.arg1 == act.mParser.TYPE_RESP_PARK) {
+                                act.updatePADialog();
+                            }
                             // data already in mParser.DATA
-                            //if (mParser.Parse()) {
+                            if (act.mParser.LPGRPM > 0)  act.mTripLogged = false;
                             act.requestsPending = 0;
+                            if (!act.mTripLogged && act.mParser.LPGRPM == 0) {
+                                act.mTripLogged = true;
+                                int LPGTripTime = Double.valueOf(act.mParser.LPGTripTime * 10).intValue();
+                                int PETTripTime = Double.valueOf(act.mParser.PETTripTime * 10).intValue();
+                                act.writeLOG(String.format(act.getString(R.string.log_tripdone),
+                                        act.mParser.LPGTripSpent / 10000000.0,
+                                        act.mParser.LPGTripDist,
+                                        TimeUnit.MILLISECONDS.toHours(LPGTripTime),
+                                        (TimeUnit.MILLISECONDS.toMinutes(LPGTripTime) % 60),
+                                        act.mParser.LPGInTank,
+                                        act.mParser.PETTripSpent / 10000000.0,
+                                        act.mParser.PETTripDist,
+                                        TimeUnit.MILLISECONDS.toHours(PETTripTime),
+                                        (TimeUnit.MILLISECONDS.toMinutes(PETTripTime) % 60),
+                                        act.mParser.PETInTank,
+                                        act.mParser.OutsideTemp
+                                ));
+                            }
+
                             if (act.mActivityVisible) {
                                 if (act.tvPulse.getCurrentTextColor() == 0xFFFFFFFF)
                                     act.tvPulse.setTextColor(0xFFA0A0A0);
@@ -778,7 +809,6 @@ public class Elpigy extends Activity {
                                 act.mParser.LPGStatus_old = act.mParser.LPGStatus;
                                 act.updateOSADialog(false);
                             }
-                            //}
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "MESSAGE_READ() failed", e);
                         }
@@ -786,7 +816,7 @@ public class Elpigy extends Activity {
                         break;
 
                     case MESSAGE_VALUE:
-                        act.tvPulse.setText(String.valueOf(msg.arg1) + "," + String.valueOf(msg.arg2));
+                        act.tvPulse.setText(String.valueOf(msg.arg1) + "," + String.valueOf(msg.arg2) + "," + String.valueOf(act.mParser.packetType)); // packettype is from prev.packet!
                         break;
 
                     case MESSAGE_DEVICE_NAME:
@@ -863,6 +893,8 @@ public class Elpigy extends Activity {
 
                 mParser.UpdateChecksum(ResponseParser.REQUEST_ADD_LPG);
                 send(ResponseParser.REQUEST_ADD_LPG);
+
+                writeLOG(String.format(getString(R.string.log_lpgfill), tmp / 10000000.0, mParser.LPGInTank));
                 break;
             case (ParametersActivity.REQUEST_ADD_PET):
                 tmp = Double.valueOf(msg.getData().getString(ParametersActivity.PARAM)) * 10000000.0;
@@ -875,6 +907,7 @@ public class Elpigy extends Activity {
 
                 mParser.UpdateChecksum(ResponseParser.REQUEST_ADD_PET);
                 send(ResponseParser.REQUEST_ADD_PET);
+                writeLOG(String.format(getString(R.string.log_petfill), tmp / 10000000.0, mParser.PETInTank));
                 break;
             case (ParametersActivity.REQUEST_SET_LPG):
                 flow = Integer.valueOf(msg.getData().getString(ParametersActivity.PARAM));
@@ -1003,6 +1036,7 @@ public class Elpigy extends Activity {
         case R.id.osa_table:
             Toast.makeText(getApplicationContext(), "OSA reading...", Toast.LENGTH_SHORT).show();
             showOSADialog();
+            //updatePADialog();
             return true;
         case R.id.menu_about:
         	showAboutDialog();
@@ -1028,6 +1062,7 @@ public class Elpigy extends Activity {
 */
     private void showOSADialog() {
         mOSADialog = new Dialog(Elpigy.this);
+        mOSADialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         mOSADialog.setContentView(R.layout.osa_table);
         mRequestMode = REQUEST_MODE_OSA;
         mParser.ClearOSA();
@@ -1085,6 +1120,40 @@ public class Elpigy extends Activity {
         }
     }
 
+    private void updatePADialog() {
+        if (mPADialog == null) {
+            mPADialog = new Dialog(Elpigy.this);
+            mPADialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            mPADialog.setContentView(R.layout.park_assist);
+
+            ScrollView pa = (ScrollView) mPADialog.findViewById(R.id.mainView);
+            pa.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    mPADialog.dismiss();
+                    mPADialog = null;
+                }
+
+            });
+        }
+        // now update with PA distances
+
+        TextView tvA = (TextView) mPADialog.findViewById(R.id.tvA);
+        TextView tvB = (TextView) mPADialog.findViewById(R.id.tvB);
+        TextView tvC = (TextView) mPADialog.findViewById(R.id.tvC);
+        TextView tvD = (TextView) mPADialog.findViewById(R.id.tvD);
+        TextView tvCM = (TextView) mPADialog.findViewById(R.id.barA);
+        TextView tvst = (TextView) mPADialog.findViewById(R.id.barB);
+        tvA.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PAA/10.0));
+        tvB.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PAB/10.0));
+        tvC.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PAC/10.0));
+        tvD.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PAD/10.0));
+        tvCM.setText(String.format(Locale.ENGLISH, "%d", mParser.PACM));
+        tvst.setText(String.format(Locale.ENGLISH, "%d", mParser.PAstatus));
+
+        mPADialog.show();
+    }
+
 	private void showAboutDialog() {
 		mAboutDialog = new Dialog(Elpigy.this);
 		mAboutDialog.setContentView(R.layout.about);
@@ -1100,6 +1169,37 @@ public class Elpigy extends Activity {
 		});		
 		
 		mAboutDialog.show();
+    }
+
+    private void writeLOG(String data)
+    {
+        FileOutputStream fos = null;
+        StringBuffer logText = new StringBuffer();
+
+        try {
+            java.text.DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+            String d = df.format(Calendar.getInstance().getTime());
+
+            logText.append(d);
+            logText.append(" : ");
+            logText.append(data);
+            logText.append("\r\n");
+
+            final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Elpigy/" );
+
+            if (!dir.exists())  dir.mkdirs();
+
+            final File txt = new File(dir, "tripdata.txt");
+
+            if (!txt.exists())  txt.createNewFile();
+
+            fos = new FileOutputStream(txt, true);  // open in append mode
+
+            fos.write(logText.toString().getBytes());
+            fos.close();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "writeToFile() failed", e);
+        }
     }
 }
 

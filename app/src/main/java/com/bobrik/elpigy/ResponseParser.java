@@ -34,11 +34,11 @@ public class ResponseParser {
     public static final int CELL_BIG_2_1 = 2;
     public static final int CELL_BIG_2_2 = 3;
 
-    public static final int TYPE_RESP_FAST = 1;
-    public static final int TYPE_RESP_SLOW = 2;
-    public static final int TYPE_RESP_RARE = 4;
-    public static final int TYPE_RESP_PARK = 8;
-    public static final int TYPE_RESP_OSA1 = 16;
+    public final int TYPE_RESP_FAST = 1;
+    public final int TYPE_RESP_SLOW = 2;
+    public final int TYPE_RESP_RARE = 4;
+    public final int TYPE_RESP_PARK = 8;
+    public final int TYPE_RESP_OSA1 = 16;
 
 
     // parsed data
@@ -92,8 +92,14 @@ public class ResponseParser {
     public int PETinjFlow;
     public int LPGerrBits;
 
-    public int P1, P2;
+    public int PAA;
+    public int PAB;
+    public int PAC;
+    public int PAD;
+    public int PACM;
+    public int PAstatus;
     public int workMode;
+    public int packetType;
 
     public byte OSATable[] = new byte[25];
     public boolean OSAChanged = false;
@@ -204,8 +210,12 @@ public class ResponseParser {
 
     private void ParsePark() {
 
-        P1 = getWORD(4);
-        P2 = getWORD(6);
+        PAA = getUBYTE(8);
+        PAB = getUBYTE(9);
+        PAC = getUBYTE(10);
+        PAD = getUBYTE(11);
+        PACM = getUBYTE(12);
+        PAstatus = getUBYTE(13);
     }
 
     private void ParseOSA() {
@@ -238,7 +248,8 @@ public class ResponseParser {
 
         // parse data from response buffer
         workMode = getUBYTE(3);
-        switch (getUBYTE(2)) {
+        packetType = getUBYTE(2);
+        switch (packetType) {
             case TYPE_RESP_FAST: ParseFast(); break;
             case TYPE_RESP_SLOW: ParseSlow(); break;
             case TYPE_RESP_RARE: ParseRare(); break;
