@@ -18,6 +18,7 @@ public class ParametersActivity extends Activity {
     public static final int REQUEST_SET_LPG = 3;
     public static final int REQUEST_SET_PET = 4;
     public static final int REQUEST_RESET_TRIP = 5;
+    public static final int REQUEST_SET_SPEED_CORR = 6;
 
     public static final String REQUEST = "request";
     public static final String PARAM = "param";
@@ -26,6 +27,7 @@ public class ParametersActivity extends Activity {
     private EditText edPETFlow;
     private EditText edAddLPG;
     private EditText edAddPET;
+    private EditText edSpeedCorr;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +43,7 @@ public class ParametersActivity extends Activity {
         edPETFlow = (EditText) findViewById(R.id.edPETFlow);
         edAddLPG = (EditText) findViewById(R.id.edLPG);
         edAddPET = (EditText) findViewById(R.id.edPET);
+        edSpeedCorr = (EditText) findViewById(R.id.edSpeedCorr);
 
         Button backButton = (Button) findViewById(R.id.btnBack);
         backButton.setOnClickListener(new View.OnClickListener() {
@@ -113,6 +116,18 @@ public class ParametersActivity extends Activity {
                 finish();
             }
         });
+        Button setSpeedCorr = (Button) findViewById(R.id.btnSetSpeedCorr);
+        setSpeedCorr.setOnClickListener( new View.OnClickListener() {
+            public void onClick(View v) {
+                Intent intent = new Intent();
+                intent.putExtra(REQUEST, String.valueOf(REQUEST_SET_SPEED_CORR));
+
+                // Set result and finish this Activity
+                setResult(Activity.RESULT_OK, intent);
+
+                finish();
+            }
+        });
 
     }
 
@@ -125,6 +140,7 @@ public class ParametersActivity extends Activity {
             //Toast.makeText(getApplicationContext(), "toast", Toast.LENGTH_SHORT).show();
             edLPGFlow.setText(intent.getExtras().getString("LPG"));
             edPETFlow.setText(intent.getExtras().getString("PET"));
+            edSpeedCorr.setText(intent.getExtras().getString("SPEEDCORR"));
         }
     }
 }

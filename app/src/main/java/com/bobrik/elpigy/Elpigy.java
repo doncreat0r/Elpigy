@@ -170,7 +170,6 @@ public class Elpigy extends Activity {
         setContentView(R.layout.main);
         //getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);
 
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         mParser = new ResponseParser();
 
         mLayout = (LinearLayout) findViewById(R.id.mlayout);
@@ -245,7 +244,7 @@ public class Elpigy extends Activity {
 	public void onStart() {
 		super.onStart();
 
-        writeLOG("Started...");
+        //writeLOG("Started...");
 
         //mLayout.setOrientation(LinearLayout.VERTICAL);
 		if (DEBUG)
@@ -477,15 +476,17 @@ public class Elpigy extends Activity {
                 updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_speed, R.string.unit_speed, String.valueOf(mParser.OBDSpeed));
                 break;
             case ResponseParser.CELL_SMALL_1_2:
+                if (mParser.LPGLTFTChanged) setViewBackground(ll, mParser.LPGLTFTChanged, DARK_RED, 0x00);
                 switch (newType) {
                     case 0:
-                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_STFT, R.string.unit_percent, String.format(Locale.ENGLISH, "%2.2f", mParser.OBDSTFT));
+                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_STFT, R.string.unit_percent, String.format(Locale.ENGLISH, "%2.1f", mParser.OBDSTFT));
                         break;
                     case 1:
-                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_LTFT, R.string.unit_percent, String.format(Locale.ENGLISH, "%2.2f", mParser.OBDLTFT));
+                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_LTFT, R.string.unit_percent, String.format(Locale.ENGLISH, "%2.1f", mParser.OBDLTFT));
+                        mParser.LPGLTFTChanged = false;
                         break;
                     case 2:
-                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_load, R.string.unit_percent, String.format(Locale.ENGLISH, "%2.2f", mParser.OBDLoad));
+                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_load, R.string.unit_percent, String.format(Locale.ENGLISH, "%2.1f", mParser.OBDLoad));
                         break;
                     case 3:
                         updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_ta, R.string.unit_degree, String.format(Locale.ENGLISH, "%2.1f", mParser.OBDTA));
@@ -537,7 +538,7 @@ public class Elpigy extends Activity {
                 setViewBackground(ll, (mParser.LPGerrBits & 0x3) > 0, DARK_RED, 0x00);
                 // set TAG if updateMode allows
                 if (updateMode == UPDATE_MODE_TAGS) {
-                    newType = (mParser.LPGStatus > 4)? 0 : 1;
+                    newType = (mParser.LPGStatus > 4 && (mParser.LPGerrBits & 0x8) == 0)? 0 : 1;
                     ll.setTag(newType);
                 }
                 switch (newType) {
@@ -737,6 +738,7 @@ public class Elpigy extends Activity {
                                     act.mMenuItemConnect.setTitle(R.string.disconnect);
                                 }
 
+                                act.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                                 //mTitle.setText( R.string.title_connected_to );
                                 //mTitle.append(" " + mConnectedDeviceName);
                                 act.writeLOG(act.getString(R.string.log_started));
@@ -754,6 +756,7 @@ public class Elpigy extends Activity {
 
                             case BluetoothSerialService.STATE_LISTEN:
                             case BluetoothSerialService.STATE_NONE:
+                                act.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                                 if (act.mMenuItemConnect != null) {
                                     act.mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
                                     act.mMenuItemConnect.setTitle(R.string.connect);
@@ -775,13 +778,16 @@ public class Elpigy extends Activity {
 
                     case MESSAGE_READ:
                         try {
-                            if (msg.arg1 == act.mParser.TYPE_RESP_PARK) {
+                            if ((act.mParser.LPGerrBits & 0x4) > 0) {
                                 act.updatePADialog();
+                            } else {
+                                if (act.mPADialog != null)
+                                    act.mPADialog.dismiss();
                             }
                             // data already in mParser.DATA
                             if (act.mParser.LPGRPM > 0)  act.mTripLogged = false;
                             act.requestsPending = 0;
-                            if (!act.mTripLogged && act.mParser.LPGRPM == 0) {
+                            if (!act.mTripLogged && act.mParser.PETAvgInjTime == 0 && act.mParser.LPGRPM < 1000) {
                                 act.mTripLogged = true;
                                 int LPGTripTime = Double.valueOf(act.mParser.LPGTripTime * 10).intValue();
                                 int PETTripTime = Double.valueOf(act.mParser.PETTripTime * 10).intValue();
@@ -798,6 +804,7 @@ public class Elpigy extends Activity {
                                         act.mParser.PETInTank,
                                         act.mParser.OutsideTemp
                                 ));
+                                Toast.makeText(act.getApplicationContext(), act.getString(R.string.toast_trip_logged), Toast.LENGTH_SHORT).show();
                             }
 
                             if (act.mActivityVisible) {
@@ -805,8 +812,9 @@ public class Elpigy extends Activity {
                                     act.tvPulse.setTextColor(0xFFA0A0A0);
                                 else
                                     act.tvPulse.setTextColor(0xFFFFFFFF);
-                                act.updateValues((act.mParser.LPGStatus != act.mParser.LPGStatus_old) ? UPDATE_MODE_TAGS : UPDATE_MODE_VALUES);
+                                act.updateValues((act.mParser.LPGStatus != act.mParser.LPGStatus_old || act.mParser.LPGerrBits_old != act.mParser.LPGerrBits) ? UPDATE_MODE_TAGS : UPDATE_MODE_VALUES);
                                 act.mParser.LPGStatus_old = act.mParser.LPGStatus;
+                                act.mParser.LPGerrBits_old = act.mParser.LPGerrBits;
                                 act.updateOSADialog(false);
                             }
                         } catch (Exception e) {
@@ -922,6 +930,13 @@ public class Elpigy extends Activity {
                 ResponseParser.REQUEST_SET_PET_FLOW[2] = (byte) flow;
                 mParser.UpdateChecksum(ResponseParser.REQUEST_SET_PET_FLOW);
                 send(ResponseParser.REQUEST_SET_PET_FLOW);
+                break;
+            case (ParametersActivity.REQUEST_SET_SPEED_CORR):
+                flow = Integer.valueOf(msg.getData().getString(ParametersActivity.PARAM));
+
+                ResponseParser.REQUEST_SET_SPEED_CORR[2] = (byte) flow;
+                mParser.UpdateChecksum(ResponseParser.REQUEST_SET_SPEED_CORR);
+                send(ResponseParser.REQUEST_SET_SPEED_CORR);
                 break;
             case (ParametersActivity.REQUEST_RESET_TRIP):
                 send(ResponseParser.REQUEST_RESET_TRIP);
@@ -1049,6 +1064,7 @@ public class Elpigy extends Activity {
         Intent serverIntent = new Intent(this, ParametersActivity.class);
         serverIntent.putExtra("LPG", String.valueOf(mParser.LPGinjFlow));
         serverIntent.putExtra("PET", String.valueOf(mParser.PETinjFlow));
+        serverIntent.putExtra("SPEEDCORR", String.valueOf(mParser.SpeedCorr));
         startActivityForResult(serverIntent, REQUEST_PARAMETERS);
     }
 
@@ -1121,6 +1137,7 @@ public class Elpigy extends Activity {
     }
 
     private void updatePADialog() {
+
         if (mPADialog == null) {
             mPADialog = new Dialog(Elpigy.this);
             mPADialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -1142,13 +1159,13 @@ public class Elpigy extends Activity {
         TextView tvB = (TextView) mPADialog.findViewById(R.id.tvB);
         TextView tvC = (TextView) mPADialog.findViewById(R.id.tvC);
         TextView tvD = (TextView) mPADialog.findViewById(R.id.tvD);
-        TextView tvCM = (TextView) mPADialog.findViewById(R.id.barA);
+        //TextView tvCM = (TextView) mPADialog.findViewById(R.id.barA);
         TextView tvst = (TextView) mPADialog.findViewById(R.id.barB);
-        tvA.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PAA/10.0));
-        tvB.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PAB/10.0));
-        tvC.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PAC/10.0));
-        tvD.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PAD/10.0));
-        tvCM.setText(String.format(Locale.ENGLISH, "%d", mParser.PACM));
+        tvA.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PA[0]));
+        tvB.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PA[1]));
+        tvC.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PA[2]));
+        tvD.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PA[3]));
+        //tvCM.setText(String.format(Locale.ENGLISH, "%d", mParser.PACM));
         tvst.setText(String.format(Locale.ENGLISH, "%d", mParser.PAstatus));
 
         mPADialog.show();

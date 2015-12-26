@@ -6,17 +6,21 @@ package com.bobrik.elpigy;
  */
 public class ResponseParser {
 
+    // reqest/response magic bytes
+    public static byte REQUEST_MAGIC_BYTE = 0x42;
+    public static byte RESPONSE_MAGIC_BYTE = 0x62;
     // raw data and requests, note: some requests needs checksum update!
     public byte[] DATA;
     //public static final int RESPONSE_LENGTH = 90;
-    public static byte[] REQUEST_STOP_DATA = new byte[] {0x62, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62};
-    public static byte[] REQUEST_GET_DATA = new byte[] {0x62, 0x00, 0x01, 0x00, 0x00, 0x00, 0x63};
-    public static byte[] REQUEST_GET_OSA = new byte[] {0x62, 0x00, 0x02, 0x00, 0x00, 0x00, 0x64};
-    public static byte[] REQUEST_ADD_LPG = new byte[] {0x62, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
-    public static byte[] REQUEST_ADD_PET = new byte[] {0x62, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
-    public static byte[] REQUEST_RESET_TRIP = new byte[] {0x62, 0x03, 0x00, 0x00, 0x00, 0x00, 0x65};
-    public static byte[] REQUEST_SET_LPG_FLOW = new byte[] {0x62, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
-    public static byte[] REQUEST_SET_PET_FLOW = new byte[] {0x62, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00};
+    public static byte[] REQUEST_STOP_DATA = new byte[] {RESPONSE_MAGIC_BYTE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62};
+    public static byte[] REQUEST_GET_DATA = new byte[] {RESPONSE_MAGIC_BYTE, 0x00, 0x01, 0x00, 0x00, 0x00, 0x63};
+    public static byte[] REQUEST_GET_OSA = new byte[] {RESPONSE_MAGIC_BYTE, 0x00, 0x02, 0x00, 0x00, 0x00, 0x64};
+    public static byte[] REQUEST_ADD_LPG = new byte[] {RESPONSE_MAGIC_BYTE, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
+    public static byte[] REQUEST_ADD_PET = new byte[] {RESPONSE_MAGIC_BYTE, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00};
+    public static byte[] REQUEST_RESET_TRIP = new byte[] {RESPONSE_MAGIC_BYTE, 0x03, 0x00, 0x00, 0x00, 0x00, 0x65};
+    public static byte[] REQUEST_SET_LPG_FLOW = new byte[] {RESPONSE_MAGIC_BYTE, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00};
+    public static byte[] REQUEST_SET_PET_FLOW = new byte[] {RESPONSE_MAGIC_BYTE, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00};
+    public static byte[] REQUEST_SET_SPEED_CORR = new byte[] {RESPONSE_MAGIC_BYTE, 0x0A, 0x00, 0x00, 0x00, 0x00, 0x00};
     //public static byte[] REQUEST_REBOOT = new byte[] {0x62, (byte)0xFF, 0x00, 0x00, 0x00, 0x00, 0x61};
 
     public static final int CELL_SMALL_1_1 = 0;
@@ -90,13 +94,16 @@ public class ResponseParser {
 
     public int LPGinjFlow;
     public int PETinjFlow;
+    public int SpeedCorr;
     public int LPGerrBits;
+    public int LPGerrBits_old;
+    public boolean LPGLTFTChanged;
 
-    public int PAA;
-    public int PAB;
-    public int PAC;
-    public int PAD;
-    public int PACM;
+    public double PA[] = new double[4]; // lengths in m, including cm value in the closest one
+    //public double PAB;
+    //public double PAC;
+    //public double PAD;
+//    public int PACM;
     public int PAstatus;
     public int workMode;
     public int packetType;
@@ -148,6 +155,8 @@ public class ResponseParser {
 
     private void ParseFast() {
 
+        double LTFT;
+
         LPGAvgInjTime = getWORD(6) / 4.0 / 187.0;  // in ms
         PETAvgInjTime = getWORD(4) / 4.0 / 187.0;
         LPGRPM = getWORD(8);
@@ -160,7 +169,9 @@ public class ResponseParser {
         OBDMap = getUBYTE(20) / 100.0;
         OBDTA = getUBYTE(21) / 2.0 - 64;
         OBDSTFT = (getUBYTE(22) - 128) / 1.27;
-        OBDLTFT = (getUBYTE(23) - 128) / 1.27;
+        LTFT = (getUBYTE(23) - 128) / 1.27;
+        if (LTFT != 0.0 && LTFT != OBDLTFT) LPGLTFTChanged = true;
+        OBDLTFT = LTFT;
         OBDerror = getUBYTE(24);
         OBDTPS = getUBYTE(25) * 100.0 / 255.0;   // in %
         OBDLoad = getUBYTE(26) * 100.0 / 255.0;  // in %
@@ -205,16 +216,22 @@ public class ResponseParser {
 
         LPGinjFlow = getUBYTE(6);
         PETinjFlow = getUBYTE(7);
+        SpeedCorr = getBYTE(8);
 
     }
 
     private void ParsePark() {
 
-        PAA = getUBYTE(8);
-        PAB = getUBYTE(9);
-        PAC = getUBYTE(10);
-        PAD = getUBYTE(11);
-        PACM = getUBYTE(12);
+        int i, CM;
+        int imin = 0;
+
+        for (i = 0; i < 4; i++) {
+            PA[i] = getUBYTE(8+i)/10.0;
+            if (PA[i] < PA[imin])  imin = i;
+        }
+        CM = getUBYTE(12);
+        PA[imin] = PA[imin] + CM/100.0;
+
         PAstatus = getUBYTE(13);
     }
 
@@ -235,7 +252,7 @@ public class ResponseParser {
     public boolean Parse() {
         int i, cs = 0;
 
-        if (DATA[0] == 0x42)
+        if (DATA[0] == REQUEST_MAGIC_BYTE)
             for (i = 0; i < getUBYTE(1); i++)
                 cs += getUBYTE(i);
         else
