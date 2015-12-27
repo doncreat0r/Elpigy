@@ -476,7 +476,6 @@ public class Elpigy extends Activity {
                 updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_speed, R.string.unit_speed, String.valueOf(mParser.OBDSpeed));
                 break;
             case ResponseParser.CELL_SMALL_1_2:
-                if (mParser.LPGLTFTChanged) setViewBackground(ll, mParser.LPGLTFTChanged, DARK_RED, 0x00);
                 switch (newType) {
                     case 0:
                         updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_STFT, R.string.unit_percent, String.format(Locale.ENGLISH, "%2.1f", mParser.OBDSTFT));
@@ -492,6 +491,7 @@ public class Elpigy extends Activity {
                         updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_ta, R.string.unit_degree, String.format(Locale.ENGLISH, "%2.1f", mParser.OBDTA));
                         break;
                 }
+                setViewBackground(ll, mParser.LPGLTFTChanged, DARK_RED, 0x00);
                 break;
             case ResponseParser.CELL_SMALL_1_3:
                 updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.out_temp, R.string.unit_degreeC, String.format(Locale.ENGLISH, "%2.1f", mParser.OutsideTemp));

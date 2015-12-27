@@ -23,7 +23,8 @@
                 android:id="@+id/tvA"
                 android:padding="5dp"
                 android:gravity="center_horizontal"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textSize="20pt" />
 
             <TextView
                 android:layout_width="fill_parent"
@@ -49,7 +50,8 @@
                 android:id="@+id/tvB"
                 android:padding="5dp"
                 android:gravity="center_horizontal"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textSize="20pt" />
 
             <TextView
                 android:layout_width="fill_parent"
@@ -75,7 +77,8 @@
                 android:id="@+id/tvC"
                 android:padding="5dp"
                 android:gravity="center_horizontal"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textSize="20pt" />
 
             <TextView
                 android:layout_width="fill_parent"
@@ -100,7 +103,8 @@
                 android:id="@+id/tvD"
                 android:padding="5dp"
                 android:gravity="center_horizontal"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textSize="20pt" />
 
             <TextView
                 android:layout_width="fill_parent"

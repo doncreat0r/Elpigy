@@ -170,7 +170,7 @@ public class ResponseParser {
         OBDTA = getUBYTE(21) / 2.0 - 64;
         OBDSTFT = (getUBYTE(22) - 128) / 1.27;
         LTFT = (getUBYTE(23) - 128) / 1.27;
-        if (LTFT != 0.0 && LTFT != OBDLTFT) LPGLTFTChanged = true;
+        if (OBDLTFT != 0.0 && getUBYTE(23) != 0 && LTFT != OBDLTFT) LPGLTFTChanged = true;
         OBDLTFT = LTFT;
         OBDerror = getUBYTE(24);
         OBDTPS = getUBYTE(25) * 100.0 / 255.0;   // in %

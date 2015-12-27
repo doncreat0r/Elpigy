@@ -47,7 +47,8 @@
             android:text="@string/button_add_lpg"
             android:id="@+id/btnAddLPG"
             android:layout_gravity="right"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:width="150dp" />
 
     </LinearLayout>
 
@@ -73,7 +74,8 @@
             android:text="@string/button_add_pet"
             android:id="@+id/btnAddPET"
             android:layout_gravity="right"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:width="150dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -98,7 +100,8 @@
             android:text="@string/button_set_lpg"
             android:id="@+id/btnSetLPG"
             android:layout_weight="1"
-            android:layout_gravity="right" />
+            android:layout_gravity="right"
+            android:width="70dp" />
 
         <EditText
             android:layout_width="wrap_content"
@@ -116,7 +119,27 @@
             android:text="@string/button_set_pet"
             android:id="@+id/btnSetPET"
             android:layout_weight="1"
-            android:layout_gravity="right" />
+            android:layout_gravity="right"
+            android:width="70dp" />
+
+        <EditText
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:inputType="numberSigned"
+            android:ems="10"
+            android:id="@+id/edSpeedCorr"
+            android:editable="true"
+            android:imeOptions="actionDone"
+            android:layout_weight="15" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/button_set_spd_corr"
+            android:id="@+id/btnSetSpeedCorr"
+            android:layout_weight="1"
+            android:layout_gravity="right"
+            android:width="70dp" />
     </LinearLayout>
 
     <LinearLayout

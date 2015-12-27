@@ -14,7 +14,8 @@
 	<string name="toast_connected_to">Connected to</string>
 	<string name="toast_unable_to_connect">Unable to connect device</string>
 	<string name="toast_connection_lost">Device connection was lost</string>
-			
+    <string name="toast_trip_logged">Trip logged</string>
+
     <string name="not_connected">You are not connected to a device</string>
     <string name="title_connecting">connecting&#8230;</string>
     <string name="title_connected_to">connected: </string>
@@ -35,6 +36,7 @@
     <string name="button_add_pet">Add petrol</string>
     <string name="button_set_lpg">&gt;LPG</string>
     <string name="button_set_pet">&gt;pet</string>
+    <string name="button_set_spd_corr">&gt;spd%</string>
     <string name="button_reset_trip">Reset trip data</string>
     <string name="msg_sent">Request sent&#8230;</string>
 
@@ -141,7 +143,7 @@
 
     <!-- log texts -->
     <string name="log_started">Connected to TCU...</string>
-    <string name="log_tripdone" formatted="false">Trip done: LPG: %.1f l, %.1f km, %02d:%02d, rem %.1f l, petrol: %.1f l, %.1f km, %02d:%02d, rem %.1f l, amb: %.1f °C.</string>
+    <string name="log_tripdone" formatted="false">Trip: LPG: %.1f l, %.1f km, %02d:%02d, rem %.1f l, petrol: %.1f l, %.1f km, %02d:%02d, rem %.1f l, amb: %.1f °C.</string>
     <string name="log_lpgfill" formatted="false">LPG added: %.1f l, was: %.1f l</string>
     <string name="log_petfill" formatted="false">Pet added: %.1f l, was: %.1f l</string>
 
