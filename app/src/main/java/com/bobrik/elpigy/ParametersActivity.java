@@ -19,6 +19,7 @@ public class ParametersActivity extends Activity {
     public static final int REQUEST_SET_PET = 4;
     public static final int REQUEST_RESET_TRIP = 5;
     public static final int REQUEST_SET_SPEED_CORR = 6;
+    public static final int REQUEST_TOGGLE_LOG_DATA = 7;
 
     public static final String REQUEST = "request";
     public static final String PARAM = "param";
@@ -109,6 +110,18 @@ public class ParametersActivity extends Activity {
             public void onClick(View v) {
                 Intent intent = new Intent();
                 intent.putExtra(REQUEST, String.valueOf(REQUEST_RESET_TRIP));
+
+                // Set result and finish this Activity
+                setResult(Activity.RESULT_OK, intent);
+
+                finish();
+            }
+        });
+        Button toggleLogData = (Button) findViewById(R.id.btnToggleLogData);
+        toggleLogData.setOnClickListener( new View.OnClickListener() {
+            public void onClick(View v) {
+                Intent intent = new Intent();
+                intent.putExtra(REQUEST, String.valueOf(REQUEST_TOGGLE_LOG_DATA));
 
                 // Set result and finish this Activity
                 setResult(Activity.RESULT_OK, intent);

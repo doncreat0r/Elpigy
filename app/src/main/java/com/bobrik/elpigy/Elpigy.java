@@ -12,12 +12,12 @@ import java.util.concurrent.TimeUnit;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
-import android.text.format.DateFormat;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -44,7 +44,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 
-public class Elpigy extends Activity {
+public class Elpigy extends Activity implements View.OnClickListener {
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
@@ -63,7 +63,7 @@ public class Elpigy extends Activity {
     /**
      * Set to true to add debugging code and logging.
      */
-    public static final boolean DEBUG = false;
+    public static final boolean DEBUG = true;
 
     /**
      * The tag we use when logging, so that our messages can be distinguished
@@ -96,14 +96,13 @@ public class Elpigy extends Activity {
 	
 	private boolean mEnablingBT;
     private int requestsPending = 0;
-//    private boolean mLocalEcho = false;
-//    private int mFontSize = 9;
-//    private int mColorId = 2;
-//    private int mControlKeyId = 0;
     private boolean mAllowInsecureConnections = true;
     private boolean mAutoConnect = false;
     private boolean mActivityVisible = false;
     private boolean mTripLogged = true;
+    private boolean mLogData = false;
+
+    private FileOutputStream mLogDataFile = null;
     private String mAutoConnectMac = null;
 
     private int mScreenOrientation = 0;
@@ -132,8 +131,7 @@ public class Elpigy extends Activity {
     private SharedPreferences mPrefs;
 	
     private MenuItem mMenuItemConnect;
-    private MenuItem mMenuItemStartStopRecording;
-    
+
     private Dialog mAboutDialog;
     private Dialog mOSADialog;
     private Dialog mPADialog = null;
@@ -141,15 +139,52 @@ public class Elpigy extends Activity {
 
     // Main hor/vert. layout
     private LinearLayout mLayout;
+    private LinearLayout mLayoutBig;
+    private LinearLayout mLayoutSmall;
 
     // label elements in 2x2
-    private LinearLayout layBigs[] = new LinearLayout[4];
-
+    private LinearLayout mLayoutBigs[] = new LinearLayout[4];
     // label elements in 3x3
-    private LinearLayout laySmalls[] = new LinearLayout[9];
+    private LinearLayout mLayoutSmalls[] = new LinearLayout[9];
 
     private TextView tvPulse;
 
+    /*
+     * Not sure if it's a good way to put the onClick into main class
+     * Tag contains currently chosen value (i.e. STFT, LTFT, Load or TA for the top-middle item in small views)
+     */
+    public void onClick(View v) {
+        if (v.getTag() != null && v.getParent() != null) {
+            // increment Tag on click (only 0..3 values are allowed)
+            int i = ((Integer) v.getTag()) + 1;
+            if (i > 3) i = 0;
+            v.setTag(i);
+            // update a textview (text + caption + unit) with a new tag
+            if (v.getParent().getParent() == mLayoutBig)
+                updateBigTextViews((LinearLayout) v, -1, UPDATE_MODE_ALL);
+            else
+                if (v.getParent().getParent() == mLayoutSmall)
+                    updateSmallTextViews((LinearLayout) v, -1, UPDATE_MODE_ALL);
+        }
+    }
+
+    /*
+     * fill layout arrays with items that contains 3 textviews as children
+     */
+    private void updateLayoutArray(LinearLayout parentLayout, LinearLayout[] layoutArray) {
+        // 1st layout children are rows
+        for (int i=0; i < parentLayout.getChildCount(); i++) {
+            LinearLayout layTmp = (LinearLayout) parentLayout.getChildAt(i);
+            // 2nd layout children are cols
+            for (int j=0; j < layTmp.getChildCount(); j++) {
+                int idx = i * layTmp.getChildCount() + j;
+                if (idx < layoutArray.length) { // check if we still fit into the array
+                    layoutArray[idx] = (LinearLayout) layTmp.getChildAt(j);
+                    layoutArray[idx].setOnClickListener(this);
+                }
+            }
+        }
+    }
 
 	/** Called when the activity is first created. */
 	@Override
@@ -161,105 +196,49 @@ public class Elpigy extends Activity {
 			Log.e(LOG_TAG, "+++ ON CREATE +++");
 
         //Locale.setDefault(new Locale("en", "US"));
-
         mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         // Set up the window layout
-        //requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.main);
-        //getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.custom_title);
 
         mParser = new ResponseParser();
 
         mLayout = (LinearLayout) findViewById(R.id.mlayout);
-        LinearLayout layBig = (LinearLayout) findViewById(R.id.layout_big);
-        LinearLayout laySmall = (LinearLayout) findViewById(R.id.layout_small);
+        mLayoutBig = (LinearLayout) findViewById(R.id.layout_big);
+        mLayoutSmall = (LinearLayout) findViewById(R.id.layout_small);
         tvPulse = (TextView) findViewById(R.id.tvPulse);
 
-        // fill buffers with layout matrix
-        for (int i=0; i < layBig.getChildCount(); i++) {
-            LinearLayout layTmp = (LinearLayout) layBig.getChildAt(i);
-            //Log.e(LOG_TAG, String.valueOf(i));
-            for (int j=0; j < layTmp.getChildCount(); j++) {
-                int idx = i * layTmp.getChildCount() + j;
-                if (idx < layBigs.length) {
-                    layBigs[idx] = (LinearLayout) layTmp.getChildAt(j);
-                    //layBigs[idx].setTag(0);
-                    //updateBigTextViews(layBigs[idx], idx, 0);
-                    layBigs[idx].setOnClickListener(new View.OnClickListener() {
-                        public void onClick(View v) {
-                            if (v.getTag() != null) {
-                                int i = ((Integer) v.getTag()) + 1;
-                                if (i > 3) i = 0;
-                                v.setTag(i);
-                                //Toast.makeText(getApplicationContext(), String.valueOf(i), Toast.LENGTH_SHORT).show();
-                                updateBigTextViews((LinearLayout) v, -1, UPDATE_MODE_ALL);
-                            }
-                        }
-                    });
-                    //layBigs[i * layBig.getChildCount() + j].setTag(1);  // will be updated in updateprefs
-                }
-            }
-        }
+        updateLayoutArray(mLayoutBig, mLayoutBigs);
         if (DEBUG) Log.e(LOG_TAG, "big done");
-        for (int i=0; i < laySmall.getChildCount(); i++) {
-            LinearLayout layTmp = (LinearLayout) laySmall.getChildAt(i);
-
-            for (int j=0; j < layTmp.getChildCount(); j++) {
-                int idx = i * layTmp.getChildCount() + j;
-                if (idx < laySmalls.length) {
-                    //Log.e(LOG_TAG, String.valueOf(idx));
-                    laySmalls[idx] = (LinearLayout) layTmp.getChildAt(j);
-                    //laySmalls[idx].setTag(0);
-                    //updateSmallTextViews(laySmalls[idx], idx, 0);
-                    laySmalls[idx].setOnClickListener(new View.OnClickListener() {
-                        public void onClick(View v) {
-                            if (v.getTag() != null) {
-                                int i = ((Integer) v.getTag()) + 1;
-                                if (i > 3) i = 0;
-                                v.setTag(i);
-                                updateSmallTextViews((LinearLayout) v, -1, UPDATE_MODE_ALL);
-                            }
-                        }
-                    });
-                }
-            }
-        }
-
+        updateLayoutArray(mLayoutSmall, mLayoutSmalls);
         if (DEBUG) Log.e(LOG_TAG, "small done");
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
-            finishDialogNoBluetooth();
-            return;
-        }
-        mSerialService = new BluetoothSerialService(this, mHandlerBT, mParser);
+            //finishDialogNoBluetooth();
+            //return;
+        } else
+            mSerialService = new BluetoothSerialService(this, mHandlerBT, mParser);
 
 		if (DEBUG)
 			Log.e(LOG_TAG, "+++ DONE IN ON CREATE +++");
-	}
+    }
 
 	@Override
 	public void onStart() {
 		super.onStart();
-
-        //writeLOG("Started...");
-
-        //mLayout.setOrientation(LinearLayout.VERTICAL);
-		if (DEBUG)
+        if (DEBUG)
 			Log.e(LOG_TAG, "++ ON START ++");
 		
 		mEnablingBT = false;
 	}
 
 	@Override
-	public synchronized void onResume() {
+    public synchronized void onResume() {
 		super.onResume();
 
-		if (DEBUG) {
-			Log.e(LOG_TAG, "+ ON RESUME +");
-		}
+		if (DEBUG) Log.e(LOG_TAG, "+ ON RESUME +");
 
         mActivityVisible = true;
 
@@ -300,13 +279,14 @@ public class Elpigy extends Activity {
 		    }
 
 		    if (mBluetoothAdapter != null) {
-//		    	readPrefs();
 		    	updatePrefs();
 
                 if (mAutoConnect && mAutoConnectMac != null && !mAutoConnectMac.equals(""))
                     connectDevice(mAutoConnectMac);
 		    }
 		}
+        if (DEBUG)
+            Log.e(LOG_TAG, "+ END ON RESUME +");
 	}
 
     @Override
@@ -316,6 +296,9 @@ public class Elpigy extends Activity {
         updateScreenLayout(newConfig.orientation);
     }
 
+    /*
+     * Reaction to screen layout change
+     */
     public void updateScreenLayout(int newLayout) {
         if (mLayout == null) return;
         if (newLayout == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE || newLayout == ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE ||
@@ -330,7 +313,6 @@ public class Elpigy extends Activity {
 	public synchronized void onPause() {
 		super.onPause();
 
-        writePrefs();
         mActivityVisible = false;
 		if (DEBUG)
 			Log.e(LOG_TAG, "- ON PAUSE -");
@@ -341,8 +323,15 @@ public class Elpigy extends Activity {
     public void onStop() {
         super.onStop();
 
+        writePrefs();
         if (mSerialService != null)
             mSerialService.stop();
+        try {
+            if (mLogDataFile != null)
+                mLogDataFile.close();
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "Exception while closing data log file");
+        }
         if(DEBUG)
         	Log.e(LOG_TAG, "-- ON STOP --");
     }
@@ -365,25 +354,24 @@ public class Elpigy extends Activity {
         mAutoConnectMac = mPrefs.getString( AUTO_CONNECT_MAC, "");
 		mScreenOrientation = readIntPref(SCREENORIENTATION_KEY, mScreenOrientation, 2);
 
-        for (int i=0; i<laySmalls.length; i++)
-            if (laySmalls[i] != null)
-                laySmalls[i].setTag(mPrefs.getInt(String.format(SMALL_VIEW_TAG, i), 0));
-        for (int i=0; i<layBigs.length; i++)
-            if (layBigs[i] != null)
-                layBigs[i].setTag(mPrefs.getInt(String.format(BIG_VIEW_TAG, i), 0));
-
+        for (int i=0; i< mLayoutSmalls.length; i++)
+            if (mLayoutSmalls[i] != null)
+                mLayoutSmalls[i].setTag(mPrefs.getInt(String.format(SMALL_VIEW_TAG, i), 0));
+        for (int i=0; i< mLayoutBigs.length; i++)
+            if (mLayoutBigs[i] != null)
+                mLayoutBigs[i].setTag(mPrefs.getInt(String.format(BIG_VIEW_TAG, i), 0));
         //Toast.makeText(getApplicationContext(), "prefs read", Toast.LENGTH_SHORT).show();
     }
 
     private void writePrefs() {
         //Toast.makeText(getApplicationContext(), "writing prefs", Toast.LENGTH_SHORT).show();
         SharedPreferences.Editor editor = mPrefs.edit();
-        for (int i=0; i<laySmalls.length; i++)
-            if (laySmalls[i] != null && laySmalls[i].getTag() != null)
-                editor.putInt(String.format(SMALL_VIEW_TAG, i), (Integer) laySmalls[i].getTag());
-        for (int i=0; i<layBigs.length; i++)
-            if (layBigs[i] != null)
-                editor.putInt(String.format(BIG_VIEW_TAG, i), (Integer) layBigs[i].getTag());
+        for (int i=0; i< mLayoutSmalls.length; i++)
+            if (mLayoutSmalls[i] != null && mLayoutSmalls[i].getTag() != null)
+                editor.putInt(String.format(SMALL_VIEW_TAG, i), (Integer) mLayoutSmalls[i].getTag());
+        for (int i=0; i< mLayoutBigs.length; i++)
+            if (mLayoutBigs[i] != null)
+                editor.putInt(String.format(BIG_VIEW_TAG, i), (Integer) mLayoutBigs[i].getTag());
         editor.apply();
     }
 
@@ -391,7 +379,7 @@ public class Elpigy extends Activity {
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
         //mControlKeyCode = CONTROL_KEY_SCHEMES[mControlKeyId];
-        mSerialService.setAllowInsecureConnections( mAllowInsecureConnections );
+        mSerialService.setAllowInsecureConnections(mAllowInsecureConnections);
         
 		switch (mScreenOrientation) {
 		case ORIENTATION_PORTRAIT:
@@ -421,23 +409,22 @@ public class Elpigy extends Activity {
 	}
 
     public void send(byte[] out) {
-    	if ( out.length > 0 ) {
+    	if ( mSerialService != null && out.length > 0 ) {
     		mSerialService.write( out );
     	}
     }
 
+    /*
+     * Update texts of the value view and title/unit views if needed
+     */
     private void updateViewCaptions(boolean needUpdate, LinearLayout ll, int captionId, int unitId, String value) {
-        TextView tv;
-
+        // ll is a parent layout for 3 textviews, first check if those 3 views are available
         if (ll.getChildAt(0) instanceof TextView && ll.getChildAt(1) instanceof TextView && ll.getChildAt(2) instanceof TextView) {
             if (needUpdate) {
-                tv = (TextView) ll.getChildAt(0);
-                tv.setText(getString(captionId));
-                tv = (TextView) ll.getChildAt(2);
-                tv.setText(getString(unitId));
+                ((TextView) ll.getChildAt(0)).setText(getString(captionId));
+                ((TextView) ll.getChildAt(2)).setText(getString(unitId));
             }
-            tv = (TextView) ll.getChildAt(1);
-            tv.setText(value);
+            ((TextView) ll.getChildAt(1)).setText(value);
         }
     }
 
@@ -467,9 +454,10 @@ public class Elpigy extends Activity {
             return;
         if (ll.getTag() != null)
             newType = (Integer)ll.getTag();
+        // if no specified idx, then look for the specified view in the array
         if (idx < 0) {
-            for (int i = 0; i < laySmalls.length; i++)
-                if (laySmalls[i] == ll) idx = i;
+            for (int i = 0; i < mLayoutSmalls.length; i++)
+                if (mLayoutSmalls[i] == ll) idx = i;
         }
         switch (idx) {
             case ResponseParser.CELL_SMALL_1_1:
@@ -616,8 +604,8 @@ public class Elpigy extends Activity {
         if (ll.getTag() != null)
             newType = (Integer)ll.getTag();
         if (idx < 0) {
-            for (int i = 0; i < layBigs.length; i++)
-                if (layBigs[i] == ll) idx = i;
+            for (int i = 0; i < mLayoutBigs.length; i++)
+                if (mLayoutBigs[i] == ll) idx = i;
         }
         switch (idx) {
             case ResponseParser.CELL_BIG_1_1:
@@ -702,21 +690,21 @@ public class Elpigy extends Activity {
         }
     }
 
+    /*
+     * Called when new data packet received from the BluetoothService
+     */
     private void updateValues(int updateMode) {
-        for (int i = 0; i < layBigs.length; i++)
-            if (layBigs[i] != null) { // those layouts contain textviews
-                //Log.i(LOG_TAG, "Updating big values...");
-                updateBigTextViews(layBigs[i], i, updateMode);
-            }
-        //Log.i(LOG_TAG, "Updating small values...");
-        for (int i = 0; i < laySmalls.length; i++) {
-            if (laySmalls[i] != null) {
-                updateSmallTextViews(laySmalls[i], i, updateMode);
-            }
-        }
+        for (int i = 0; i < mLayoutBigs.length; i++)
+            if (mLayoutBigs[i] != null)
+                updateBigTextViews(mLayoutBigs[i], i, updateMode);
+        for (int i = 0; i < mLayoutSmalls.length; i++)
+            if (mLayoutSmalls[i] != null)
+                updateSmallTextViews(mLayoutSmalls[i], i, updateMode);
     }
     
-    // The Handler that gets information back from the BluetoothService
+    /*
+     * The Handler that gets information back from the BluetoothService
+     */
     private static class MyHandler extends Handler {
         private final WeakReference<Elpigy> mAct;
 
@@ -739,8 +727,6 @@ public class Elpigy extends Activity {
                                 }
 
                                 act.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-                                //mTitle.setText( R.string.title_connected_to );
-                                //mTitle.append(" " + mConnectedDeviceName);
                                 act.writeLOG(act.getString(R.string.log_started));
                                 Toast.makeText(act.getApplicationContext(), act.getString(R.string.toast_connected_to) + " "
                                         + act.mConnectedDeviceName, Toast.LENGTH_SHORT).show();
@@ -769,11 +755,6 @@ public class Elpigy extends Activity {
                         }
                         break;
                     case MESSAGE_WRITE:
-                        //if (mLocalEcho) {
-                        //byte[] writeBuf = (byte[]) msg.obj;
-                        //mEmulatorView.write(writeBuf, msg.arg1);
-                        //}
-
                         break;
 
                     case MESSAGE_READ:
@@ -785,7 +766,7 @@ public class Elpigy extends Activity {
                                     act.mPADialog.dismiss();
                             }
                             // data already in mParser.DATA
-                            if (act.mParser.LPGRPM > 0)  act.mTripLogged = false;
+                            if (act.mParser.LPGRPM > 1000)  act.mTripLogged = false;
                             act.requestsPending = 0;
                             if (!act.mTripLogged && act.mParser.PETAvgInjTime == 0 && act.mParser.LPGRPM < 1000) {
                                 act.mTripLogged = true;
@@ -816,6 +797,11 @@ public class Elpigy extends Activity {
                                 act.mParser.LPGStatus_old = act.mParser.LPGStatus;
                                 act.mParser.LPGerrBits_old = act.mParser.LPGerrBits;
                                 act.updateOSADialog(false);
+                                // data log
+                                if (act.mLogData) {
+                                    act.LogData();
+                                    act.tvPulse.setTextColor(COLOR_GREEN);
+                                }
                             }
                         } catch (Exception e) {
                             Log.e(LOG_TAG, "MESSAGE_READ() failed", e);
@@ -824,7 +810,7 @@ public class Elpigy extends Activity {
                         break;
 
                     case MESSAGE_VALUE:
-                        act.tvPulse.setText(String.valueOf(msg.arg1) + "," + String.valueOf(msg.arg2) + "," + String.valueOf(act.mParser.packetType)); // packettype is from prev.packet!
+                        act.tvPulse.setText( String.format(Locale.ENGLISH, "%d,%d,%d", msg.arg1, msg.arg2, act.mParser.packetType)); // packettype is from prev.packet!
                         break;
 
                     case MESSAGE_DEVICE_NAME:
@@ -941,6 +927,9 @@ public class Elpigy extends Activity {
             case (ParametersActivity.REQUEST_RESET_TRIP):
                 send(ResponseParser.REQUEST_RESET_TRIP);
                 break;
+            case (ParametersActivity.REQUEST_TOGGLE_LOG_DATA):
+                this.mLogData = !this.mLogData;
+                break;
         }
         Toast.makeText(getApplicationContext(), getString(R.string.msg_sent), Toast.LENGTH_SHORT).show();
     }
@@ -1021,7 +1010,9 @@ public class Elpigy extends Activity {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.option_menu, menu);
         mMenuItemConnect = menu.getItem(0);
-        mMenuItemStartStopRecording = menu.getItem(3);        
+        // don't allow connect when there's no Bluetooth (running in emulator)
+        mMenuItemConnect.setEnabled(mBluetoothAdapter != null);
+        //mMenuItemStartStopRecording = menu.getItem(3);
         return true;
     }
 
@@ -1051,7 +1042,6 @@ public class Elpigy extends Activity {
         case R.id.osa_table:
             Toast.makeText(getApplicationContext(), "OSA reading...", Toast.LENGTH_SHORT).show();
             showOSADialog();
-            //updatePADialog();
             return true;
         case R.id.menu_about:
         	showAboutDialog();
@@ -1174,49 +1164,97 @@ public class Elpigy extends Activity {
 	private void showAboutDialog() {
 		mAboutDialog = new Dialog(Elpigy.this);
 		mAboutDialog.setContentView(R.layout.about);
-		mAboutDialog.setTitle( getString( R.string.app_name ) + " " + getString( R.string.app_version ));
+		mAboutDialog.setTitle(getString(R.string.app_name) + " " + getString(R.string.app_version));
 		
 		Button buttonOpen = (Button) mAboutDialog.findViewById(R.id.buttonDialog);
 		buttonOpen.setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-		 
-				mAboutDialog.dismiss();
-			}
-		});		
+            @Override
+            public void onClick(View v) {
+
+                mAboutDialog.dismiss();
+            }
+        });
 		
 		mAboutDialog.show();
     }
 
+    private File ensureLogFileExists(String fileName) {
+        try {
+            final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + R.string.app_name + "/" );
+
+            if (!dir.exists())
+                if (!dir.mkdirs())
+                    throw new IOException("Unable to create work dir");
+
+            final File txt = new File(dir, fileName);
+
+            if (!txt.exists())
+                if (!txt.createNewFile())
+                    throw new IOException("Unable to create log file");
+
+            return txt;
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "ensureLogFileExists() failed: ", e);
+            return null;
+        }
+    }
+
     private void writeLOG(String data)
     {
-        FileOutputStream fos = null;
-        StringBuffer logText = new StringBuffer();
+        StringBuilder logText = new StringBuilder();
 
         try {
-            java.text.DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-            String d = df.format(Calendar.getInstance().getTime());
+            String logDateTime = (new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)).format(Calendar.getInstance().getTime());
 
-            logText.append(d);
+            logText.append(logDateTime);
             logText.append(" : ");
             logText.append(data);
             logText.append("\r\n");
 
-            final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Elpigy/" );
+            File txt = ensureLogFileExists("tripdata.txt");
 
-            if (!dir.exists())  dir.mkdirs();
+            if (txt != null) {
+                FileOutputStream fos = new FileOutputStream(txt, true);  // open in append mode
 
-            final File txt = new File(dir, "tripdata.txt");
-
-            if (!txt.exists())  txt.createNewFile();
-
-            fos = new FileOutputStream(txt, true);  // open in append mode
-
-            fos.write(logText.toString().getBytes());
-            fos.close();
+                fos.write(logText.toString().getBytes());
+                fos.close();
+            }
         } catch (IOException e) {
             Log.e(LOG_TAG, "writeToFile() failed", e);
         }
+    }
+
+    public void LogData()
+    {
+        StringBuilder logText = new StringBuilder();
+
+        try
+        {
+            String logPointTime = (new SimpleDateFormat("HH:mm:ss.SSS", Locale.US)).format(Calendar.getInstance().getTime());
+            String logDate = (new SimpleDateFormat("yyyy-MM-dd", Locale.US)).format(Calendar.getInstance().getTime());
+
+            // currently hardcoded log fields
+            logText.append(String.format(Locale.ENGLISH,
+                    "%s;%2.2f;%2.2f;%d;%3.0f;%2.1f;%2.1f;%d;%2.2f;%2.2f;%2.2f;%2.2f;",
+                    logPointTime, mParser.LPGAvgInjTime,
+                    mParser.PETAvgInjTime, mParser.LPGRPM, mParser.OBDLoad, mParser.OBDSTFT, mParser.OBDLTFT,
+                    mParser.OBDSpeed, mParser.OBDMap, mParser.OBDTA, mParser.LPGPcol, mParser.LPGPsys));
+            logText.append(String.format(Locale.ENGLISH, "%2.1f;%2.1f;%d;%d;%2.1f",
+                    mParser.LPGTgas, mParser.LPGTred, mParser.OBDECT, mParser.OBDIAT, mParser.OBDTPS));
+            logText.append("\r\n");
+
+            if (mLogDataFile == null)
+            {
+                File txt = ensureLogFileExists(logDate + ".csv");
+                if (txt != null)
+                    mLogDataFile = new FileOutputStream(txt, true);  // open in append mode
+            }
+            mLogDataFile.write(logText.toString().getBytes());
+
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "writeToFile() failed", e);
+        }
+
     }
 }
 
