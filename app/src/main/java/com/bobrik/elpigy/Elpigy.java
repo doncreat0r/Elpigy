@@ -875,7 +875,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
         int flow;
         byte[] bytes;
 
-        switch (Integer.valueOf(msg.getData().getString(ParametersActivity.REQUEST))) {
+        switch (msg.getData().getInt(ParametersActivity.REQUEST)) {
             case (ParametersActivity.REQUEST_ADD_LPG):
                 tmp = Double.valueOf(msg.getData().getString(ParametersActivity.PARAM)) * 10000000.0;
 
@@ -1044,6 +1044,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
             showOSADialog();
             return true;
         case R.id.menu_about:
+            //updatePADialog();
         	showAboutDialog();
             return true;
         }
@@ -1144,19 +1145,16 @@ public class Elpigy extends Activity implements View.OnClickListener {
             });
         }
         // now update with PA distances
-
-        TextView tvA = (TextView) mPADialog.findViewById(R.id.tvA);
-        TextView tvB = (TextView) mPADialog.findViewById(R.id.tvB);
-        TextView tvC = (TextView) mPADialog.findViewById(R.id.tvC);
-        TextView tvD = (TextView) mPADialog.findViewById(R.id.tvD);
-        //TextView tvCM = (TextView) mPADialog.findViewById(R.id.barA);
-        TextView tvst = (TextView) mPADialog.findViewById(R.id.barB);
-        tvA.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PA[0]));
-        tvB.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PA[1]));
-        tvC.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PA[2]));
-        tvD.setText(String.format(Locale.ENGLISH, "%2.1f", mParser.PA[3]));
-        //tvCM.setText(String.format(Locale.ENGLISH, "%d", mParser.PACM));
-        tvst.setText(String.format(Locale.ENGLISH, "%d", mParser.PAstatus));
+        if (mParser != null) {
+            ((TextView) mPADialog.findViewById(R.id.tvA)).setText(String.format(Locale.ENGLISH, "%1.2f", mParser.PA[0]));
+            ((TextView) mPADialog.findViewById(R.id.tvB)).setText(String.format(Locale.ENGLISH, "%1.2f", mParser.PA[1]));
+            ((TextView) mPADialog.findViewById(R.id.tvC)).setText(String.format(Locale.ENGLISH, "%1.2f", mParser.PA[2]));
+            ((TextView) mPADialog.findViewById(R.id.tvD)).setText(String.format(Locale.ENGLISH, "%1.2f", mParser.PA[3]));
+            ((PABarView) mPADialog.findViewById(R.id.barA)).setDistance(mParser.PA[0]);
+            ((PABarView) mPADialog.findViewById(R.id.barB)).setDistance(mParser.PA[1]);
+            ((PABarView) mPADialog.findViewById(R.id.barC)).setDistance(mParser.PA[2]);
+            ((PABarView) mPADialog.findViewById(R.id.barD)).setDistance(mParser.PA[3]);
+        }
 
         mPADialog.show();
     }
