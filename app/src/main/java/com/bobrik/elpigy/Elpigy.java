@@ -230,7 +230,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
 		super.onStart();
         if (DEBUG)
 			Log.e(LOG_TAG, "++ ON START ++");
-		
+        this.LogData();
 		mEnablingBT = false;
 	}
 
@@ -1178,7 +1178,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
 
     private File ensureLogFileExists(String fileName) {
         try {
-            final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + R.string.app_name + "/" );
+            final File dir = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + getString(R.string.app_name) + "/" );
 
             if (!dir.exists())
                 if (!dir.mkdirs())
@@ -1203,16 +1203,21 @@ public class Elpigy extends Activity implements View.OnClickListener {
 
         try {
             String logDateTime = (new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)).format(Calendar.getInstance().getTime());
+//            Log.e(LOG_TAG, "datetime: " + logDateTime);
 
             logText.append(logDateTime);
             logText.append(" : ");
             logText.append(data);
             logText.append("\r\n");
 
+//            Log.e(LOG_TAG, "text: " + logText.toString());
+
             File txt = ensureLogFileExists("tripdata.txt");
 
             if (txt != null) {
                 FileOutputStream fos = new FileOutputStream(txt, true);  // open in append mode
+
+//                Log.e(LOG_TAG, "fos: " + fos.toString());
 
                 fos.write(logText.toString().getBytes());
                 fos.close();
