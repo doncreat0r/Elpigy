@@ -1203,21 +1203,16 @@ public class Elpigy extends Activity implements View.OnClickListener {
 
         try {
             String logDateTime = (new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)).format(Calendar.getInstance().getTime());
-//            Log.e(LOG_TAG, "datetime: " + logDateTime);
 
             logText.append(logDateTime);
             logText.append(" : ");
             logText.append(data);
             logText.append("\r\n");
 
-//            Log.e(LOG_TAG, "text: " + logText.toString());
-
             File txt = ensureLogFileExists("tripdata.txt");
 
             if (txt != null) {
                 FileOutputStream fos = new FileOutputStream(txt, true);  // open in append mode
-
-//                Log.e(LOG_TAG, "fos: " + fos.toString());
 
                 fos.write(logText.toString().getBytes());
                 fos.close();
