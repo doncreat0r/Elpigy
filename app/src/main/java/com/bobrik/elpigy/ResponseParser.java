@@ -170,15 +170,15 @@ public class ResponseParser {
         OBDMap = getUBYTE(20) / 100.0;
         OBDTA = getUBYTE(21) / 2.0 - 64;
         OBDLoad = getUBYTE(26) * 100.0 / 255.0;  // in %
+        LPGerrBits = getUBYTE(27);
         OBDSTFT = (getUBYTE(22) - 128) / 1.27;
         LTFT = (getUBYTE(23) - 128) / 1.27;
         // previous LTFT not zero and current LTFT init (!-128) and prev LTFT not equal current LTFT and STFT not zero
         // then "LTFT was changed" alert is active
-        if (OBDLTFT != 0.0 && getUBYTE(23) != 0 && LTFT != OBDLTFT && getUBYTE(22) != 128 && OBDLoad < 90.0) LPGLTFTChanged = true;
+        if (OBDLTFT != 0.0 && getUBYTE(23) != 0 && LTFT != OBDLTFT && getUBYTE(22) != 128 && OBDLoad < 90.0 && (LPGerrBits & 0x10) == 0x10) LPGLTFTChanged = true;
         OBDLTFT = LTFT;
         OBDerror = getUBYTE(24);
         OBDTPS = getUBYTE(25) * 100.0 / 255.0;   // in %
-        LPGerrBits = getUBYTE(27);
         LPGPerHour = getWORD(28) / 1000.0;
         PETPerHour = getWORD(30) / 1000.0;
 

@@ -47,6 +47,9 @@ public class ParametersActivity extends Activity implements View.OnClickListener
             case REQUEST_SET_PET:
                 intent.putExtra(PARAM, edPETFlow.getText().toString());
                 break;
+            case REQUEST_SET_SPEED_CORR:
+                intent.putExtra(PARAM, edSpeedCorr.getText().toString());
+                break;
         }
         intent.putExtra(REQUEST, (Integer) v.getTag());
         // Set result and finish this Activity

@@ -154,6 +154,13 @@
             android:text="@string/button_reset_trip"
             android:layout_weight="1" />
 
+        <Button
+            android:id="@+id/btnToggleLogData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/toggle_log_data"
+            android:layout_weight="1" />
+
         <Button android:id="@+id/btnBack"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

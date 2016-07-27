@@ -4,115 +4,125 @@
     android:fillViewport="false"
     android:id="@+id/mainView">
 
-    <LinearLayout
-        android:orientation="horizontal"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent">
-
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="wrap_content"
+        <GridLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1">
+            android:columnCount="4"
+            android:rowCount="2"
+            android:minWidth="400dp"
+            android:minHeight="250dp">
 
             <TextView
-                android:layout_width="fill_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:text="@string/val_num"
                 android:id="@+id/tvA"
-                android:padding="5dp"
                 android:gravity="center_horizontal"
                 android:textStyle="bold"
-                android:textSize="20pt" />
+                android:textSize="19pt"
+                android:minWidth="100dp"
+                android:layout_column="0"
+                android:layout_row="0"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp" />
 
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="—\n—\n—\n—\n—\n—\n"
+            <com.bobrik.elpigy.PABarView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
                 android:id="@+id/barA"
-                android:gravity="center_horizontal" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="1">
+                android:maxWidth="100dp"
+                android:padding="7dp"
+                android:minWidth="100dp"
+                android:layout_column="0"
+                android:layout_row="1"
+                android:minHeight="190dp" />
 
             <TextView
-                android:layout_width="fill_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:text="@string/val_num"
                 android:id="@+id/tvB"
-                android:padding="5dp"
                 android:gravity="center_horizontal"
                 android:textStyle="bold"
-                android:textSize="20pt" />
+                android:textSize="19pt"
+                android:minWidth="100dp"
+                android:layout_column="1"
+                android:layout_row="0"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp" />
 
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="—\n—\n—\n—\n—\n—\n"
+            <com.bobrik.elpigy.PABarView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
                 android:id="@+id/barB"
-                android:gravity="center_horizontal" />
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="1">
+                android:maxWidth="100dp"
+                android:padding="7dp"
+                android:minWidth="100dp"
+                android:layout_column="1"
+                android:layout_row="1"
+                android:minHeight="190dp" />
 
             <TextView
-                android:layout_width="fill_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:text="@string/val_num"
                 android:id="@+id/tvC"
-                android:padding="5dp"
                 android:gravity="center_horizontal"
                 android:textStyle="bold"
-                android:textSize="20pt" />
+                android:textSize="19pt"
+                android:minWidth="100dp"
+                android:layout_column="2"
+                android:layout_row="0"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp" />
 
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="—\n—\n—\n—\n—\n—\n"
+            <com.bobrik.elpigy.PABarView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
                 android:id="@+id/barC"
-                android:gravity="center_horizontal" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_weight="1">
+                android:maxWidth="100dp"
+                android:padding="7dp"
+                android:minWidth="100dp"
+                android:layout_column="2"
+                android:layout_row="1"
+                android:minHeight="190dp" />
 
             <TextView
-                android:layout_width="fill_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textAppearance="?android:attr/textAppearanceLarge"
                 android:text="@string/val_num"
                 android:id="@+id/tvD"
-                android:padding="5dp"
                 android:gravity="center_horizontal"
                 android:textStyle="bold"
-                android:textSize="20pt" />
+                android:textSize="19pt"
+                android:minWidth="100dp"
+                android:layout_column="3"
+                android:layout_row="0"
+                android:paddingLeft="5dp"
+                android:paddingRight="5dp"
+                android:paddingTop="0dp"
+                android:paddingBottom="0dp" />
 
-            <TextView
-                android:layout_width="fill_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceLarge"
-                android:text="—\n—\n—\n—\n—\n—\n"
+            <com.bobrik.elpigy.PABarView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
                 android:id="@+id/barD"
-                android:gravity="center_horizontal" />
-        </LinearLayout>
-    </LinearLayout>
+                android:maxWidth="100dp"
+                android:padding="7dp"
+                android:minWidth="100dp"
+                android:layout_column="3"
+                android:layout_row="1"
+                android:minHeight="190dp" />
+
+        </GridLayout>
 </ScrollView>

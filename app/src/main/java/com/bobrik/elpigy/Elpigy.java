@@ -12,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -63,7 +62,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
     /**
      * Set to true to add debugging code and logging.
      */
-    public static final boolean DEBUG = true;
+    public static final boolean DEBUG = false;
 
     /**
      * The tag we use when logging, so that our messages can be distinguished
@@ -116,8 +115,9 @@ public class Elpigy extends Activity implements View.OnClickListener {
     private static final String SCREENORIENTATION_KEY = "screenorientation";
 
     public static final int COLOR_WHITE = 0xffffffff;
-//    public static final int BLACK = 0xff000000;
+    public static final int COLOR_BLACK = 0xff000000;
 //    public static final int BLUE = 0xff344ebd;
+    public static final int DARK_BLUE = 0xFF0000BA;
     public static final int DARK_RED = 0xFFBA0000;
     public static final int LIGHT_RED = 0xFFFF0000;
     public static final int COLOR_PETROL = 0xFFFFFF00;
@@ -230,7 +230,6 @@ public class Elpigy extends Activity implements View.OnClickListener {
 		super.onStart();
         if (DEBUG)
 			Log.e(LOG_TAG, "++ ON START ++");
-        this.LogData();
 		mEnablingBT = false;
 	}
 
@@ -378,7 +377,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
     private void updatePrefs() {
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);
-        //mControlKeyCode = CONTROL_KEY_SCHEMES[mControlKeyId];
+
         mSerialService.setAllowInsecureConnections(mAllowInsecureConnections);
         
 		switch (mScreenOrientation) {
@@ -410,7 +409,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
 
     public void send(byte[] out) {
     	if ( mSerialService != null && out.length > 0 ) {
-    		mSerialService.write( out );
+    		mSerialService.write(out);
     	}
     }
 
@@ -479,7 +478,11 @@ public class Elpigy extends Activity implements View.OnClickListener {
                         updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_ta, R.string.unit_degree, String.format(Locale.ENGLISH, "%2.1f", mParser.OBDTA));
                         break;
                 }
-                setViewBackground(ll, mParser.LPGLTFTChanged, DARK_RED, 0x00);
+                if (mParser.LPGLTFTChanged) {
+                    setViewBackground(ll, mParser.LPGLTFTChanged, DARK_RED, 0x00);
+                } else {
+                    setViewBackground(ll, (mParser.LPGerrBits & 0x10) != 0x10, DARK_BLUE, 0x00);
+                }
                 break;
             case ResponseParser.CELL_SMALL_1_3:
                 updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.out_temp, R.string.unit_degreeC, String.format(Locale.ENGLISH, "%2.1f", mParser.OutsideTemp));
@@ -735,7 +738,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
                                 break;
 
                             case BluetoothSerialService.STATE_CONNECTING:
-                                act.mLayout.setBackgroundColor(0xFF000000);
+                                act.mLayout.setBackgroundColor(COLOR_BLACK);
                                 // mTitle.setText(R.string.title_connecting);
                                 Toast.makeText(act.getApplicationContext(), R.string.title_connecting, Toast.LENGTH_SHORT).show();
                                 break;
@@ -747,7 +750,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
                                     act.mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
                                     act.mMenuItemConnect.setTitle(R.string.connect);
                                 }
-                                act.mLayout.setBackgroundColor(0xFF000000);
+                                act.mLayout.setBackgroundColor(COLOR_BLACK);
 
                                 //  mTitle.setText(R.string.title_not_connected);
 
@@ -793,9 +796,9 @@ public class Elpigy extends Activity implements View.OnClickListener {
                                     act.tvPulse.setTextColor(0xFFA0A0A0);
                                 else
                                     act.tvPulse.setTextColor(0xFFFFFFFF);
-                                act.updateValues((act.mParser.LPGStatus != act.mParser.LPGStatus_old || act.mParser.LPGerrBits_old != act.mParser.LPGerrBits) ? UPDATE_MODE_TAGS : UPDATE_MODE_VALUES);
+                                act.updateValues((act.mParser.LPGStatus != act.mParser.LPGStatus_old || act.mParser.LPGerrBits_old != (act.mParser.LPGerrBits & 0xF)) ? UPDATE_MODE_TAGS : UPDATE_MODE_VALUES);
                                 act.mParser.LPGStatus_old = act.mParser.LPGStatus;
-                                act.mParser.LPGerrBits_old = act.mParser.LPGerrBits;
+                                act.mParser.LPGerrBits_old = act.mParser.LPGerrBits & 0xF;  // count only 4 bits
                                 act.updateOSADialog(false);
                                 // data log
                                 if (act.mLogData) {
@@ -1244,8 +1247,13 @@ public class Elpigy extends Activity implements View.OnClickListener {
             if (mLogDataFile == null)
             {
                 File txt = ensureLogFileExists(logDate + ".csv");
-                if (txt != null)
+                if (txt != null) {
                     mLogDataFile = new FileOutputStream(txt, true);  // open in append mode
+                    if (txt.length() == 0)
+                        mLogDataFile.write(getString(R.string.log_data_header).getBytes());
+                        mLogDataFile.write("\r\n".getBytes());
+                }
+
             }
             mLogDataFile.write(logText.toString().getBytes());
 

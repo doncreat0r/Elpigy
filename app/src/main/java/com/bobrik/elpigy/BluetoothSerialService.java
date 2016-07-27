@@ -362,7 +362,7 @@ public class BluetoothSerialService {
                     tail = resp;  // go back to last partially received 0x42 response
                     while (head != tail) {
                         // if byte @ head is 0x42 - get the response
-                        if (queue[tail] == 0x42) {
+                        if (queue[tail] == ResponseParser.RESPONSE_MAGIC_BYTE) {
                             resp = tail;
                             // next byte after head is the response length
                             i = resp + 1;
