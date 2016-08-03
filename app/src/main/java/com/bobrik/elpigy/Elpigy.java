@@ -12,6 +12,10 @@ import java.util.concurrent.TimeUnit;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.content.Context;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -221,7 +225,29 @@ public class Elpigy extends Activity implements View.OnClickListener {
         } else
             mSerialService = new BluetoothSerialService(this, mHandlerBT, mParser);
 
-		if (DEBUG)
+        // Acquire a reference to the system Location Manager
+        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+
+        // Define a listener that responds to location updates
+        LocationListener locationListener = new LocationListener() {
+            public void onLocationChanged(Location location) {
+                location.getLatitude();
+                mParser.GPSSpeed = location.getSpeed() * 3.6f; // convert m/s to km/h
+            }
+
+            public void onStatusChanged(String provider, int status,
+                                        Bundle extras) {
+            }
+
+            public void onProviderEnabled(String provider) {
+            }
+
+            public void onProviderDisabled(String provider) {
+            }
+        };
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+
+        if (DEBUG)
 			Log.e(LOG_TAG, "+++ DONE IN ON CREATE +++");
     }
 
@@ -460,7 +486,16 @@ public class Elpigy extends Activity implements View.OnClickListener {
         }
         switch (idx) {
             case ResponseParser.CELL_SMALL_1_1:
-                updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_speed, R.string.unit_speed, String.valueOf(mParser.OBDSpeed));
+                switch (newType) {
+                    case 0:
+                    case 2:
+                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.obd_speed, R.string.unit_speed, String.valueOf(mParser.OBDSpeed));
+                        break;
+                    case 1:
+                    case 3:
+                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.gps_speed, R.string.unit_speed, String.format(Locale.ENGLISH, "%3.1f", mParser.GPSSpeed));
+                        break;
+                }
                 break;
             case ResponseParser.CELL_SMALL_1_2:
                 switch (newType) {
@@ -479,7 +514,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
                         break;
                 }
                 if (mParser.LPGLTFTChanged) {
-                    setViewBackground(ll, mParser.LPGLTFTChanged, DARK_RED, 0x00);
+                    setViewBackground(ll, true, DARK_RED, 0x00);
                 } else {
                     setViewBackground(ll, (mParser.LPGerrBits & 0x10) != 0x10, DARK_BLUE, 0x00);
                 }

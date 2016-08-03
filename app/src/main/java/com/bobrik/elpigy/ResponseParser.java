@@ -112,6 +112,8 @@ public class ResponseParser {
     public byte OSATable[] = new byte[25];
     public boolean OSAChanged = false;
 
+    public double GPSSpeed;
+
     /**
      *  Get unsigned byte as integer from buffer
      */

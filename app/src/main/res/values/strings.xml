@@ -117,6 +117,7 @@
     <string name="unit_bar">bar</string>
 
     <string name="obd_speed">Speed</string>
+    <string name="gps_speed">GPS speed</string>
     <string name="obd_STFT">STFT</string>
     <string name="obd_LTFT">LTFT</string>
     <string name="out_temp">Outside</string>
