@@ -9,6 +9,7 @@ import java.util.Calendar;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -16,6 +17,7 @@ import android.content.Context;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -95,7 +97,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
 	
 	private BluetoothAdapter mBluetoothAdapter = null;
 
-    private static BluetoothSerialService mSerialService = null;
+    private BluetoothSerialService mSerialService = null;
 	
 	private boolean mEnablingBT;
     private int requestsPending = 0;
@@ -152,6 +154,9 @@ public class Elpigy extends Activity implements View.OnClickListener {
     private LinearLayout mLayoutSmalls[] = new LinearLayout[9];
 
     private TextView tvPulse;
+
+    private LocationManager locationManager;
+    private LocationListener locationListener;
 
     /*
      * Not sure if it's a good way to put the onClick into main class
@@ -226,10 +231,10 @@ public class Elpigy extends Activity implements View.OnClickListener {
             mSerialService = new BluetoothSerialService(this, mHandlerBT, mParser);
 
         // Acquire a reference to the system Location Manager
-        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         // Define a listener that responds to location updates
-        LocationListener locationListener = new LocationListener() {
+        locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 location.getLatitude();
                 mParser.GPSSpeed = location.getSpeed() * 3.6f; // convert m/s to km/h
@@ -245,7 +250,6 @@ public class Elpigy extends Activity implements View.OnClickListener {
             public void onProviderDisabled(String provider) {
             }
         };
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
 
         if (DEBUG)
 			Log.e(LOG_TAG, "+++ DONE IN ON CREATE +++");
@@ -381,10 +385,10 @@ public class Elpigy extends Activity implements View.OnClickListener {
 
         for (int i=0; i< mLayoutSmalls.length; i++)
             if (mLayoutSmalls[i] != null)
-                mLayoutSmalls[i].setTag(mPrefs.getInt(String.format(SMALL_VIEW_TAG, i), 0));
+                mLayoutSmalls[i].setTag(mPrefs.getInt(String.format(Locale.ENGLISH, SMALL_VIEW_TAG, i), 0));
         for (int i=0; i< mLayoutBigs.length; i++)
             if (mLayoutBigs[i] != null)
-                mLayoutBigs[i].setTag(mPrefs.getInt(String.format(BIG_VIEW_TAG, i), 0));
+                mLayoutBigs[i].setTag(mPrefs.getInt(String.format(Locale.ENGLISH, BIG_VIEW_TAG, i), 0));
         //Toast.makeText(getApplicationContext(), "prefs read", Toast.LENGTH_SHORT).show();
     }
 
@@ -393,10 +397,10 @@ public class Elpigy extends Activity implements View.OnClickListener {
         SharedPreferences.Editor editor = mPrefs.edit();
         for (int i=0; i< mLayoutSmalls.length; i++)
             if (mLayoutSmalls[i] != null && mLayoutSmalls[i].getTag() != null)
-                editor.putInt(String.format(SMALL_VIEW_TAG, i), (Integer) mLayoutSmalls[i].getTag());
+                editor.putInt(String.format(Locale.ENGLISH, SMALL_VIEW_TAG, i), (Integer) mLayoutSmalls[i].getTag());
         for (int i=0; i< mLayoutBigs.length; i++)
             if (mLayoutBigs[i] != null)
-                editor.putInt(String.format(BIG_VIEW_TAG, i), (Integer) mLayoutBigs[i].getTag());
+                editor.putInt(String.format(Locale.ENGLISH, BIG_VIEW_TAG, i), (Integer) mLayoutBigs[i].getTag());
         editor.apply();
     }
 
@@ -493,7 +497,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
                         break;
                     case 1:
                     case 3:
-                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.gps_speed, R.string.unit_speed, String.format(Locale.ENGLISH, "%3.1f", mParser.GPSSpeed));
+                        updateViewCaptions(updateMode > UPDATE_MODE_VALUES, ll, R.string.gps_speed, R.string.unit_speed, String.format(Locale.ENGLISH, "%3.0f", mParser.GPSSpeed));
                         break;
                 }
                 break;
@@ -634,6 +638,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
         }
     }
 
+    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     private void updateBigTextViews(LinearLayout ll, int idx, int updateMode) {
         int newType = -1;
 
@@ -769,6 +774,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
                                 Toast.makeText(act.getApplicationContext(), act.getString(R.string.toast_connected_to) + " "
                                         + act.mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                                 act.sendGetDataRequest(); // to update RARE data
+                                act.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, act.locationListener);
                                 sendEmptyMessageDelayed(DISPLAY_DATA, 1000);
                                 break;
 
@@ -780,6 +786,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
 
                             case BluetoothSerialService.STATE_LISTEN:
                             case BluetoothSerialService.STATE_NONE:
+                                act.locationManager.removeUpdates(act.locationListener);
                                 act.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
                                 if (act.mMenuItemConnect != null) {
                                     act.mMenuItemConnect.setIcon(android.R.drawable.ic_menu_search);
@@ -848,7 +855,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
                         break;
 
                     case MESSAGE_VALUE:
-                        act.tvPulse.setText( String.format(Locale.ENGLISH, "%d,%d,%d", msg.arg1, msg.arg2, act.mParser.packetType)); // packettype is from prev.packet!
+                        act.tvPulse.setText( String.format(Locale.ENGLISH, "%d,%d,%d", msg.arg1, msg.arg2, act.mParser.packetType)); // packet type is from prev.packet!
                         break;
 
                     case MESSAGE_DEVICE_NAME:
@@ -862,7 +869,7 @@ public class Elpigy extends Activity implements View.OnClickListener {
                         break;
                     case DISPLAY_DATA:
                         try {
-                            if (mSerialService.getState() == BluetoothSerialService.STATE_CONNECTED) {
+                            if (act.mSerialService.getState() == BluetoothSerialService.STATE_CONNECTED) {
                                 act.mLayout.setBackgroundColor(((act.requestsPending > 3) ? DARK_RED : 0xFF000000)); // no data in 5 sec - error indication
                                 if (!msg.getData().containsKey(ParametersActivity.REQUEST)) {
                                     if (act.requestsPending > 1)
